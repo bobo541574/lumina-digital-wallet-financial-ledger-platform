@@ -38,6 +38,7 @@ Module/
 ├── Exceptions/
 ├── Http/              # Controllers, Requests, Resources, Middleware
 ├── Models/
+├── Policies/          # ownership/authorization policies
 ├── Providers/
 ├── Results/
 ├── Services/          # domain rules live here

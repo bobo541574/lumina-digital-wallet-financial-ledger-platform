@@ -20,7 +20,7 @@ final readonly class JournalEntryData
         public ?string $description = null,
         public ?string $reversesJournalEntryId = null,
         public ?CarbonImmutable $occurredAt = null,
-        public ?int $createdBy = null,
+        public ?string $createdBy = null,
     ) {}
 
     public function occurredAtOrNow(): CarbonImmutable

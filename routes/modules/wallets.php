@@ -1,12 +1,11 @@
 <?php
 
-/*
-|--------------------------------------------------------------------------
-| Wallet routes (Phase 03)
-|--------------------------------------------------------------------------
-|
-| GET /api/v1/wallets
-| GET /api/v1/wallets/{wallet}/balance
-| GET /api/v1/wallets/{wallet}/transactions
-|
-*/
+use App\Modules\Wallets\Http\Controllers\WalletController;
+use Illuminate\Support\Facades\Route;
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('wallets', [WalletController::class, 'index']);
+    Route::post('wallets', [WalletController::class, 'store']);
+    Route::get('wallets/{wallet}/balance', [WalletController::class, 'balance']);
+    Route::get('wallets/{wallet}/transactions', [WalletController::class, 'transactions']);
+});
