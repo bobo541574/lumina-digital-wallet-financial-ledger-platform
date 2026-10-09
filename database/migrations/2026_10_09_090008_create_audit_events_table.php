@@ -10,11 +10,9 @@ return new class extends Migration
     {
         Schema::create('audit_events', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('actor_type', 32)->nullable();
-            $table->uuid('actor_id')->nullable();
+            $table->nullableUuidMorphs('actor');
             $table->string('action', 128);
-            $table->string('subject_type', 64)->nullable();
-            $table->string('subject_id', 64)->nullable();
+            $table->nullableUuidMorphs('subject');
             $table->jsonb('before')->nullable();
             $table->jsonb('after')->nullable();
             $table->string('correlation_id', 64)->nullable();
@@ -23,7 +21,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('actor_id')->references('id')->on('users')->nullOnDelete();
-            $table->index(['subject_type', 'subject_id']);
             $table->index(['action', 'occurred_at']);
             $table->index('correlation_id');
         });

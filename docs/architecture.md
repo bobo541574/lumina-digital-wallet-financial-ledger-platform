@@ -88,6 +88,22 @@ implementation is bound in `LedgerServiceProvider`.
   `nullOnDelete`. Business deletion logic lives in services (usually soft-delete or
   reversal), with the database constraint as the final safety net.
 
+### Column & reference conventions
+
+- **UUIDs live in `uuid` columns only.** Never store a UUID in a `string`/`varchar`
+  column. Provider/tracing identifiers that originate outside the platform are the
+  sole exception and use `string`: `event_id`, `provider_transaction_id`,
+  `correlation_id`.
+- **Polymorphic relations use the morph helpers**: `uuidMorphs('source')` /
+  `nullableUuidMorphs('actor')` — never a hand-rolled `string('..._type')` +
+  `string('..._id')` pair. The generated `_id` column is `uuid` and the `_type`
+  column is `varchar`.
+- **Database constraints are the source of truth**; model events and services are
+  complementary (audit, workflows) and must never be the only integrity guarantee.
+  Constraints hold for raw SQL, queued jobs, and other services.
+- These rules are enforced by `tests/Unit/MigrationConventionsTest.php`; new
+  migrations that break them fail the suite.
+
 ## Testing conventions
 
 - Tests live in `tests/Unit` and `tests/Feature`, mirroring the module path.

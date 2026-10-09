@@ -17,8 +17,7 @@ return new class extends Migration
             $table->string('status', 16)->default('in_progress');
             $table->unsignedSmallInteger('response_status')->nullable();
             $table->jsonb('response_body')->nullable();
-            $table->string('resource_type', 64)->nullable();
-            $table->string('resource_id', 64)->nullable();
+            $table->nullableUuidMorphs('resource');
             $table->timestampTz('locked_at')->nullable();
             $table->timestampTz('expires_at')->nullable();
             $table->timestamps();

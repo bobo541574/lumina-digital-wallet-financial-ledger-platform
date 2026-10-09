@@ -14,8 +14,7 @@ return new class extends Migration
             $table->string('currency_code', 3);
             $table->string('entry_type', 32);
             $table->string('status', 16)->default('posted');
-            $table->string('source_type', 64)->nullable();
-            $table->string('source_id', 64)->nullable();
+            $table->nullableUuidMorphs('source');
             $table->string('description', 255)->nullable();
             $table->uuid('reverses_journal_entry_id')->nullable();
             $table->timestampTz('occurred_at');
