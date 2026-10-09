@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Modules\Deposits\Models\Deposit;
+use App\Modules\Deposits\Policies\DepositPolicy;
 use App\Modules\Wallets\Models\Wallet;
 use App\Modules\Wallets\Policies\WalletPolicy;
 use Illuminate\Support\Facades\Gate;
@@ -23,5 +25,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Wallet::class, WalletPolicy::class);
+        Gate::policy(Deposit::class, DepositPolicy::class);
     }
 }
