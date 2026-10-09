@@ -2,6 +2,7 @@
 
 namespace App\Modules\Deposits\Services;
 
+use App\Modules\Audit\Services\AuditLogger;
 use App\Modules\Deposits\Enums\DepositChannel;
 use App\Modules\Deposits\Enums\DepositStatus;
 use App\Modules\Deposits\Exceptions\DepositInvalidStateException;
@@ -21,7 +22,10 @@ use Illuminate\Support\Str;
 
 class DepositService
 {
-    public function __construct(private readonly LedgerPostingServiceInterface $ledger) {}
+    public function __construct(
+        private readonly LedgerPostingServiceInterface $ledger,
+        private readonly AuditLogger $audit,
+    ) {}
 
     public function createManual(User $user, string $walletId, int $amount, array $metadata = []): Deposit
     {
@@ -77,6 +81,8 @@ class DepositService
             'approved_at' => now(),
         ])->save();
 
+        $this->audit->record('deposit.approve', 'deposit', $deposit->id, ['status' => 'awaiting_approval'], ['status' => 'approved'], $operator);
+
         return $deposit;
     }
 
@@ -91,6 +97,8 @@ class DepositService
             'failure_code' => 'REJECTED_BY_OPERATOR',
             'approved_by' => $operator->id,
         ])->save();
+
+        $this->audit->record('deposit.reject', 'deposit', $deposit->id, ['status' => 'awaiting_approval'], ['status' => 'failed'], $operator);
 
         return $deposit;
     }
@@ -108,7 +116,11 @@ class DepositService
         return DB::transaction(function () use ($deposit, $operator): Deposit {
             $this->settle($deposit, 'CASH', $operator->id);
 
-            return $deposit->refresh();
+            $deposit = $deposit->refresh();
+
+            $this->audit->record('deposit.confirm', 'deposit', $deposit->id, ['status' => 'approved'], ['status' => 'succeeded', 'journal_entry_id' => $deposit->journal_entry_id], $operator);
+
+            return $deposit;
         });
     }
 
@@ -141,7 +153,11 @@ class DepositService
 
             $this->settle($locked, 'PROVIDER_CLEARING', null);
 
-            return $locked->refresh();
+            $locked = $locked->refresh();
+
+            $this->audit->record('deposit.settle', 'deposit', $locked->id, ['status' => 'awaiting_payment'], ['status' => 'succeeded', 'journal_entry_id' => $locked->journal_entry_id]);
+
+            return $locked;
         });
     }
 

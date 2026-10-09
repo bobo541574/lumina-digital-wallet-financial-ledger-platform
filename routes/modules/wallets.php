@@ -8,4 +8,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('wallets', [WalletController::class, 'store']);
     Route::get('wallets/{wallet}/balance', [WalletController::class, 'balance']);
     Route::get('wallets/{wallet}/transactions', [WalletController::class, 'transactions']);
+    Route::get('wallets/{wallet}/statement', [WalletController::class, 'statement']);
 });

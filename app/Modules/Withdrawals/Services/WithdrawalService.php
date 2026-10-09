@@ -2,6 +2,7 @@
 
 namespace App\Modules\Withdrawals\Services;
 
+use App\Modules\Audit\Services\AuditLogger;
 use App\Modules\Identity\Models\User;
 use App\Modules\Ledger\Contracts\LedgerPostingServiceInterface;
 use App\Modules\Ledger\DTOs\JournalEntryData;
@@ -32,6 +33,7 @@ class WithdrawalService
         private readonly WalletHoldService $holds,
         private readonly ProviderManager $providers,
         private readonly IdempotencyService $idempotency,
+        private readonly AuditLogger $audit,
     ) {}
 
     public function request(WithdrawalData $data): IdempotencyResult
@@ -81,6 +83,8 @@ class WithdrawalService
                 'hold_id' => $hold->id,
             ])->save();
 
+            $this->audit->record('withdrawal.request', 'withdrawal', $withdrawal->id, [], ['status' => 'reserved', 'amount' => $withdrawal->amount, 'fee' => $withdrawal->fee]);
+
             return new IdempotencyOutcome(
                 body: (new WithdrawalResource($withdrawal->refresh()))->resolve(),
                 status: 201,
@@ -110,6 +114,8 @@ class WithdrawalService
             'processed_by' => $operator->id,
             'initiated_at' => now(),
         ])->save();
+
+        $this->audit->record('withdrawal.initiate', 'withdrawal', $withdrawal->id, ['status' => 'reserved'], ['status' => $result->status->value], $operator);
 
         if ($result->status === WithdrawalStatus::Succeeded) {
             return $this->settleSucceeded($withdrawal, $result->providerTransactionId);
@@ -198,6 +204,8 @@ class WithdrawalService
                 'processed_by' => $actor->id,
             ])->save();
 
+            $this->audit->record('withdrawal.cancel', 'withdrawal', $locked->id, ['status' => 'reserved'], ['status' => 'cancelled'], $actor);
+
             return $locked;
         });
     }
@@ -253,7 +261,11 @@ class WithdrawalService
             'settled_at' => now(),
         ])->save();
 
-        return $withdrawal->refresh();
+        $withdrawal = $withdrawal->refresh();
+
+        $this->audit->record('withdrawal.settle', 'withdrawal', $withdrawal->id, [], ['status' => 'succeeded', 'journal_entry_id' => $withdrawal->journal_entry_id]);
+
+        return $withdrawal;
     }
 
     private function settleFailed(Withdrawal $withdrawal, string $failureCode): Withdrawal
@@ -266,7 +278,11 @@ class WithdrawalService
             'settled_at' => now(),
         ])->save();
 
-        return $withdrawal->refresh();
+        $withdrawal = $withdrawal->refresh();
+
+        $this->audit->record('withdrawal.fail', 'withdrawal', $withdrawal->id, [], ['status' => 'failed', 'failure_code' => $failureCode]);
+
+        return $withdrawal;
     }
 
     private function releaseHold(Withdrawal $withdrawal): void

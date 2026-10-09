@@ -25,6 +25,7 @@ app/Modules/
 ├── PaymentProviders/  # provider adapters, webhook inbox (Phase 04)
 ├── Reconciliation/    # ledger/balance/provider matching (Phase 08)
 ├── Audit/             # audit trail (Phase 06)
+├── Admin/             # cross-module admin search & dashboards (Phase 06)
 └── Shared/            # cross-cutting: errors, response envelope, currency
 ```
 

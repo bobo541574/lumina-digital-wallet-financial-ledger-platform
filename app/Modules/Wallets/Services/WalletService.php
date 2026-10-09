@@ -2,6 +2,7 @@
 
 namespace App\Modules\Wallets\Services;
 
+use App\Modules\Audit\Services\AuditLogger;
 use App\Modules\Identity\Models\User;
 use App\Modules\Ledger\Enums\AccountStatus;
 use App\Modules\Ledger\Enums\AccountType;
@@ -16,6 +17,8 @@ use Illuminate\Support\Str;
 
 class WalletService
 {
+    public function __construct(private readonly AuditLogger $audit) {}
+
     public function open(User $user, string $currencyCode, ?string $name = null): Wallet
     {
         $currency = Currency::find($currencyCode);
@@ -63,5 +66,33 @@ class WalletService
             ['wallet_id' => $wallet->id],
             ['currency_code' => $wallet->currency_code, 'posted_balance' => 0, 'reserved_balance' => 0],
         );
+    }
+
+    public function freeze(Wallet $wallet, User $actor): Wallet
+    {
+        return $this->changeStatus($wallet, WalletStatus::Frozen, 'wallet.freeze', $actor);
+    }
+
+    public function unfreeze(Wallet $wallet, User $actor): Wallet
+    {
+        return $this->changeStatus($wallet, WalletStatus::Active, 'wallet.unfreeze', $actor);
+    }
+
+    private function changeStatus(Wallet $wallet, WalletStatus $status, string $action, User $actor): Wallet
+    {
+        $before = ['status' => $wallet->status->value];
+
+        $wallet->forceFill(['status' => $status])->save();
+
+        $this->audit->record(
+            action: $action,
+            subjectType: 'wallet',
+            subjectId: $wallet->id,
+            before: $before,
+            after: ['status' => $status->value],
+            actor: $actor,
+        );
+
+        return $wallet;
     }
 }
