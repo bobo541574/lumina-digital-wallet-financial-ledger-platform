@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Shared\Logging\RedactingProcessor;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -63,6 +64,7 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
+            'processors' => [RedactingProcessor::class],
         ],
 
         'daily' => [
@@ -71,6 +73,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'max_files' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
+            'processors' => [RedactingProcessor::class],
         ],
 
         'monthly' => [
@@ -79,6 +82,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'max_files' => 3,
             'replace_placeholders' => true,
+            'processors' => [RedactingProcessor::class],
         ],
 
         'slack' => [

@@ -10,6 +10,10 @@ pest()->extend(TestCase::class)
 pest()->extend(TestCase::class)
     ->in('Unit');
 
+pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
+    ->in('Performance');
+
 expect()->extend('toBeOne', function () {
     return $this->toBe(1);
 });

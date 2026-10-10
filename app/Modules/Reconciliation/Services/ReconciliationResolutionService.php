@@ -8,7 +8,7 @@ use App\Modules\Reconciliation\Enums\ReconciliationItemStatus;
 use App\Modules\Reconciliation\Exceptions\ReconciliationItemAlreadyResolvedException;
 use App\Modules\Reconciliation\Exceptions\ReconciliationItemNotFoundException;
 use App\Modules\Reconciliation\Models\ReconciliationItem;
-use Illuminate\Support\Facades\DB;
+use App\Modules\Shared\Support\ResilientTransaction;
 
 /**
  * Records the human decision made about a reconciliation discrepancy. This is
@@ -30,7 +30,7 @@ class ReconciliationResolutionService
         ?string $note = null,
         array $resolution = [],
     ): ReconciliationItem {
-        return DB::transaction(function () use ($item, $actor, $status, $note, $resolution): ReconciliationItem {
+        return ResilientTransaction::run(function () use ($item, $actor, $status, $note, $resolution): ReconciliationItem {
             $locked = ReconciliationItem::query()->whereKey($item->id)->lockForUpdate()->first();
 
             if ($locked === null) {

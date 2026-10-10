@@ -12,3 +12,7 @@ Schedule::command('reconciliation:run --layer=wallet')->dailyAt('01:00')->withou
 Schedule::command('reconciliation:run --layer=provider')->dailyAt('01:15')->withoutOverlapping();
 Schedule::command('reconciliation:run --layer=settlement')->dailyAt('01:30')->withoutOverlapping();
 Schedule::command('reconciliation:alert')->dailyAt('07:00')->withoutOverlapping();
+
+// Deliver transactional outbox messages continuously; the processor is safe to
+// run alongside the synchronous writes and reclaims stale claims itself.
+Schedule::command('outbox:process')->everyMinute()->withoutOverlapping();

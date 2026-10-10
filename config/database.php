@@ -97,6 +97,8 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'statement_timeout' => (int) env('DB_STATEMENT_TIMEOUT', 0),
+            'idle_in_transaction_session_timeout' => (int) env('DB_IDLE_TRANSACTION_TIMEOUT', 0),
         ],
 
         'sqlsrv' => [

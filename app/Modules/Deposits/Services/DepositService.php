@@ -20,9 +20,9 @@ use App\Modules\PaymentProviders\DTOs\CollectRequest;
 use App\Modules\PaymentProviders\DTOs\PaymentIntentResult;
 use App\Modules\PaymentProviders\Enums\PaymentStatus;
 use App\Modules\PaymentProviders\ProviderManager;
+use App\Modules\Shared\Support\ResilientTransaction;
 use App\Modules\Wallets\Exceptions\WalletNotFoundException;
 use App\Modules\Wallets\Models\Wallet;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class DepositService
@@ -166,7 +166,7 @@ class DepositService
             throw new DepositInvalidStateException($deposit, 'confirmed');
         }
 
-        return DB::transaction(function () use ($deposit, $operator): Deposit {
+        return ResilientTransaction::run(function () use ($deposit, $operator): Deposit {
             $this->settle($deposit, 'CASH', $operator->id);
 
             $deposit = $deposit->refresh();
@@ -193,7 +193,7 @@ class DepositService
      */
     public function markSucceededFromProvider(Deposit $deposit, ?string $providerTransactionId = null): Deposit
     {
-        return DB::transaction(function () use ($deposit, $providerTransactionId): Deposit {
+        return ResilientTransaction::run(function () use ($deposit, $providerTransactionId): Deposit {
             $locked = Deposit::query()->whereKey($deposit->id)->lockForUpdate()->firstOrFail();
 
             $locked->forceFill([

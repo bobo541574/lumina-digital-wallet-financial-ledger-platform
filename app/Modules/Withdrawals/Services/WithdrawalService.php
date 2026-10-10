@@ -11,10 +11,13 @@ use App\Modules\Ledger\Enums\JournalEntryType;
 use App\Modules\Ledger\Exceptions\LedgerAccountInvalidException;
 use App\Modules\Ledger\Models\LedgerAccount;
 use App\Modules\Outbox\Services\OutboxService;
+use App\Modules\PaymentProviders\Exceptions\ProviderRequestException;
 use App\Modules\PaymentProviders\ProviderManager;
+use App\Modules\Shared\Errors\ErrorCode;
 use App\Modules\Shared\Idempotency\IdempotencyOutcome;
 use App\Modules\Shared\Idempotency\IdempotencyResult;
 use App\Modules\Shared\Idempotency\IdempotencyService;
+use App\Modules\Shared\Support\ResilientTransaction;
 use App\Modules\Wallets\Exceptions\WalletNotFoundException;
 use App\Modules\Wallets\Models\Wallet;
 use App\Modules\Withdrawals\DTOs\WithdrawalData;
@@ -22,7 +25,6 @@ use App\Modules\Withdrawals\Enums\WithdrawalStatus;
 use App\Modules\Withdrawals\Exceptions\WithdrawalInvalidStateException;
 use App\Modules\Withdrawals\Http\Resources\WithdrawalResource;
 use App\Modules\Withdrawals\Models\Withdrawal;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class WithdrawalService
@@ -51,7 +53,7 @@ class WithdrawalService
 
     private function execute(WithdrawalData $data): IdempotencyOutcome
     {
-        return DB::transaction(function () use ($data): IdempotencyOutcome {
+        return ResilientTransaction::run(function () use ($data): IdempotencyOutcome {
             $wallet = Wallet::query()
                 ->where('id', $data->walletId)
                 ->where('user_id', $data->actorId)
@@ -106,9 +108,21 @@ class WithdrawalService
         }
 
         $provider = $this->providers->payoutProvider((string) $withdrawal->provider);
-        $result = $provider->initiate($withdrawal);
 
-        return DB::transaction(function () use ($withdrawal, $operator, $result): Withdrawal {
+        try {
+            $result = $provider->initiate($withdrawal);
+        } catch (ProviderRequestException $e) {
+            // A timeout means the payout may have been accepted on the provider
+            // side. Keep the hold and hand the withdrawal to reconciliation
+            // rather than releasing funds or failing the request.
+            if ($e->errorCode === ErrorCode::ProviderTimeout) {
+                return $this->markReconciling($withdrawal, $operator);
+            }
+
+            throw $e;
+        }
+
+        return ResilientTransaction::run(function () use ($withdrawal, $operator, $result): Withdrawal {
             $withdrawal->forceFill([
                 'status' => $result->status,
                 'provider_reference' => $result->providerReference ?? $withdrawal->provider_reference,
@@ -138,7 +152,7 @@ class WithdrawalService
      */
     public function markSucceeded(Withdrawal $withdrawal, ?string $providerTransactionId = null): Withdrawal
     {
-        return DB::transaction(function () use ($withdrawal, $providerTransactionId): Withdrawal {
+        return ResilientTransaction::run(function () use ($withdrawal, $providerTransactionId): Withdrawal {
             $locked = Withdrawal::query()->whereKey($withdrawal->id)->lockForUpdate()->firstOrFail();
 
             if ($locked->status === WithdrawalStatus::Succeeded) {
@@ -159,7 +173,7 @@ class WithdrawalService
      */
     public function markFailed(Withdrawal $withdrawal, string $failureCode): Withdrawal
     {
-        return DB::transaction(function () use ($withdrawal, $failureCode): Withdrawal {
+        return ResilientTransaction::run(function () use ($withdrawal, $failureCode): Withdrawal {
             $locked = Withdrawal::query()->whereKey($withdrawal->id)->lockForUpdate()->firstOrFail();
 
             if ($locked->status === WithdrawalStatus::Failed) {
@@ -178,23 +192,38 @@ class WithdrawalService
      * Payout outcome unknown (timeout / no confirmation). Keep the hold and mark
      * for reconciliation; never release funds on an unverified failure.
      */
-    public function markReconciling(Withdrawal $withdrawal): Withdrawal
+    public function markReconciling(Withdrawal $withdrawal, ?User $operator = null): Withdrawal
     {
-        if (! in_array($withdrawal->status, [WithdrawalStatus::Processing, WithdrawalStatus::Reserved], true)) {
-            throw new WithdrawalInvalidStateException($withdrawal, 'marked reconciling');
-        }
+        return ResilientTransaction::run(function () use ($withdrawal, $operator): Withdrawal {
+            $locked = Withdrawal::query()->whereKey($withdrawal->id)->lockForUpdate()->firstOrFail();
 
-        $withdrawal->forceFill([
-            'status' => WithdrawalStatus::Reconciling,
-            'failure_code' => null,
-        ])->save();
+            if (! in_array($locked->status, [WithdrawalStatus::Processing, WithdrawalStatus::Reserved], true)) {
+                throw new WithdrawalInvalidStateException($locked, 'marked reconciling');
+            }
 
-        return $withdrawal;
+            $locked->forceFill([
+                'status' => WithdrawalStatus::Reconciling,
+                'failure_code' => null,
+                'processed_by' => $operator?->id ?? $locked->processed_by,
+                'initiated_at' => $locked->initiated_at ?? now(),
+            ])->save();
+
+            $this->audit->record(
+                'withdrawal.reconciling',
+                'withdrawal',
+                $locked->id,
+                ['status' => $withdrawal->status->value],
+                ['status' => WithdrawalStatus::Reconciling->value],
+                $operator,
+            );
+
+            return $locked;
+        });
     }
 
     public function cancel(Withdrawal $withdrawal, User $actor): Withdrawal
     {
-        return DB::transaction(function () use ($withdrawal, $actor): Withdrawal {
+        return ResilientTransaction::run(function () use ($withdrawal, $actor): Withdrawal {
             $locked = Withdrawal::query()->whereKey($withdrawal->id)->lockForUpdate()->firstOrFail();
 
             if (! in_array($locked->status, [WithdrawalStatus::Pending, WithdrawalStatus::Reserved], true)) {

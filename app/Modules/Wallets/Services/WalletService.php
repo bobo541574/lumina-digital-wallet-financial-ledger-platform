@@ -8,11 +8,11 @@ use App\Modules\Ledger\Enums\AccountStatus;
 use App\Modules\Ledger\Enums\AccountType;
 use App\Modules\Ledger\Models\LedgerAccount;
 use App\Modules\Shared\Models\Currency;
+use App\Modules\Shared\Support\ResilientTransaction;
 use App\Modules\Wallets\Enums\WalletStatus;
 use App\Modules\Wallets\Exceptions\UnsupportedCurrencyException;
 use App\Modules\Wallets\Models\Wallet;
 use App\Modules\Wallets\Models\WalletBalance;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class WalletService
@@ -27,7 +27,7 @@ class WalletService
             throw new UnsupportedCurrencyException($currencyCode);
         }
 
-        return DB::transaction(function () use ($user, $currencyCode, $name): Wallet {
+        return ResilientTransaction::run(function () use ($user, $currencyCode, $name): Wallet {
             $wallet = Wallet::firstOrCreate(
                 ['user_id' => $user->id, 'currency_code' => $currencyCode],
                 ['name' => $name, 'status' => WalletStatus::Active],

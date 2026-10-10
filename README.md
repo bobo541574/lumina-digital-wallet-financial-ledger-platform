@@ -1,10 +1,10 @@
 # Lumina — Digital Wallet & Financial Ledger Platform
 
 A production-oriented digital wallet built on a **double-entry ledger** with cached
-balances, multi-currency wallets, atomic internal transfers, deposits, withdrawals with
-holds, idempotency, reconciliation, and PostgreSQL partitioning.
+balances, multi-currency wallets, atomic internal transfers, deposits, withdrawals
+with holds, idempotency, reconciliation, and PostgreSQL partitioning.
 
-Stack: Laravel 13 · PostgreSQL 16 · Redis · Pest · TypeScript-ready API.
+Stack: Laravel 13 · PHP 8.4 · PostgreSQL 16 · Redis · Pest · TypeScript-ready API.
 
 The implementation plan lives in [`BLUEPRINT.md`](BLUEPRINT.md). Financial rules,
 state machines, accounting, and API error codes are documented under [`docs/`](docs).
@@ -27,7 +27,9 @@ php artisan serve
 
 ```sh
 php artisan test        # Pest test suite (PostgreSQL)
-./vendor/bin/pint       # Code style
+./vendor/bin/pint --test # Code style (check)
+./vendor/bin/pint       # Auto-fix
+composer bench          # Performance benchmarks (excluded from default)
 ```
 
 ## Documentation
@@ -40,12 +42,27 @@ php artisan test        # Pest test suite (PostgreSQL)
 | `docs/api-error-codes.md`            | Error envelope and code catalog             |
 | `docs/architecture.md`               | Modules, layering, conventions              |
 
+## Security & reliability
+
+- RBAC with ownership enforcement; admin MFA configurable via `security.two_factor.admin_required`.
+- Rate limits, webhook signature verification, and sensitive data redaction.
+- Resilient transactions (concurrency retry), provider timeout recovery, scheduled outbox processing, and DB timeouts.
+- Idempotency on write endpoints.
+
+## CI
+
+See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the standard gates (tests, Pint, dependency audit).
+
 ## Status
 
 - [x] Phase 00 — Requirements & financial rules
 - [x] Phase 01 — Project foundation (auth, modules, CI, tests)
 - [x] Phase 02 — Database & ledger core
-- [ ] Phase 03 — Wallet balance & internal transfer
-- [ ] Phase 04 — Deposits
-- [ ] Phase 05 — Withdrawals
-- [ ] Phase 06+ — History, outbox, reconciliation, security, deployment
+- [x] Phase 03 — Wallet balance & internal transfer
+- [x] Phase 04 — Deposits
+- [x] Phase 05 — Withdrawals
+- [x] Phase 06 — Transaction history, admin, audit
+- [x] Phase 07 — Outbox & webhooks
+- [x] Phase 08 — Reconciliation
+- [x] Phase 09 — Security, reliability & performance (core)
+- [ ] Phase 10 — Deployment & operations

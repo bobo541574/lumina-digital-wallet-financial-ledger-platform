@@ -6,8 +6,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('deposits', [DepositController::class, 'index']);
-    Route::post('deposits', [DepositController::class, 'store']);
-    Route::post('deposits/provider', [DepositController::class, 'storeProvider']);
+    Route::post('deposits', [DepositController::class, 'store'])->middleware('throttle:money');
+    Route::post('deposits/provider', [DepositController::class, 'storeProvider'])->middleware('throttle:money');
     Route::get('deposits/{deposit}', [DepositController::class, 'show']);
     Route::post('deposits/{deposit}/approve', [DepositController::class, 'approve']);
     Route::post('deposits/{deposit}/reject', [DepositController::class, 'reject']);
@@ -16,4 +16,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Provider callbacks authenticate via signature, not the session.
 Route::post('payment-providers/{provider}/webhook', [WebhookController::class, 'handle'])
+    ->middleware('throttle:webhooks')
     ->name('payment-providers.webhook');

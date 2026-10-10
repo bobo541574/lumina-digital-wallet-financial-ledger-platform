@@ -18,9 +18,9 @@ use App\Modules\Ledger\Models\LedgerAccount;
 use App\Modules\Ledger\Models\LedgerPosting;
 use App\Modules\Ledger\Results\PostedJournalResult;
 use App\Modules\Shared\Models\Currency;
+use App\Modules\Shared\Support\ResilientTransaction;
 use App\Modules\Wallets\Models\WalletBalance;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class LedgerPostingService implements LedgerPostingServiceInterface
 {
@@ -29,7 +29,7 @@ class LedgerPostingService implements LedgerPostingServiceInterface
         $this->assertHasEnoughPostings($entry);
         $this->assertPositiveAmounts($entry);
 
-        return DB::transaction(function () use ($entry): PostedJournalResult {
+        return ResilientTransaction::run(function () use ($entry): PostedJournalResult {
             /** @var Collection<string, LedgerAccount> $accounts */
             $accounts = $this->loadAccounts($entry);
 

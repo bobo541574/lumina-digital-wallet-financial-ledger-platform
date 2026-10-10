@@ -8,6 +8,7 @@ final readonly class LoginData
         public string $email,
         public string $password,
         public string $deviceName = 'api',
+        public ?string $twoFactorCode = null,
     ) {}
 
     /**
@@ -19,6 +20,7 @@ final readonly class LoginData
             email: $validated['email'],
             password: $validated['password'],
             deviceName: $validated['device_name'] ?? 'api',
+            twoFactorCode: $validated['two_factor_code'] ?? null,
         );
     }
 }

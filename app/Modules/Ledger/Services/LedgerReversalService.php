@@ -12,7 +12,7 @@ use App\Modules\Ledger\Exceptions\ReversalAlreadyExistsException;
 use App\Modules\Ledger\Models\JournalEntry;
 use App\Modules\Ledger\Results\PostedJournalResult;
 use App\Modules\Outbox\Services\OutboxService;
-use Illuminate\Support\Facades\DB;
+use App\Modules\Shared\Support\ResilientTransaction;
 
 /**
  * Posts a correction: an equal-and-opposite journal that exactly offsets the
@@ -28,7 +28,7 @@ class LedgerReversalService
 
     public function reverse(JournalEntry $entry, ?User $actor = null, ?string $reason = null): PostedJournalResult
     {
-        return DB::transaction(function () use ($entry, $actor, $reason): PostedJournalResult {
+        return ResilientTransaction::run(function () use ($entry, $actor, $reason): PostedJournalResult {
             $original = JournalEntry::query()->whereKey($entry->id)->lockForUpdate()->firstOrFail();
 
             if ($original->reverses_journal_entry_id !== null) {

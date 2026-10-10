@@ -2,12 +2,13 @@
 
 use App\Modules\Admin\Http\Controllers\AdminController;
 use App\Modules\Audit\Http\Controllers\AuditEventController;
+use App\Modules\Identity\Http\Middleware\RequireTwoFactor;
 use App\Modules\Ledger\Http\Controllers\AdminJournalEntryController;
 use App\Modules\Reconciliation\Http\Controllers\AdminReconciliationController;
 use App\Modules\Wallets\Http\Controllers\AdminWalletController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('admin')->middleware('auth:sanctum')->group(function () {
+Route::prefix('admin')->middleware(['auth:sanctum', 'throttle:admin', RequireTwoFactor::class])->group(function () {
     Route::get('wallets', [AdminWalletController::class, 'index']);
     Route::get('wallets/{wallet}', [AdminWalletController::class, 'show']);
     Route::post('wallets/{wallet}/freeze', [AdminWalletController::class, 'freeze']);

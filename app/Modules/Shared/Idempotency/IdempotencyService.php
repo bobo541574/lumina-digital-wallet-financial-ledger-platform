@@ -4,9 +4,9 @@ namespace App\Modules\Shared\Idempotency;
 
 use App\Modules\Shared\Idempotency\Exceptions\IdempotencyException;
 use App\Modules\Shared\Idempotency\Models\IdempotencyKey;
+use App\Modules\Shared\Support\ResilientTransaction;
 use Closure;
 use Illuminate\Support\Facades\Date;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -28,11 +28,11 @@ class IdempotencyService
         ?string $key,
         string $requestHash,
         Closure $callback,
-        int $attempts = 1,
+        int $attempts = ResilientTransaction::DEFAULT_ATTEMPTS,
     ): IdempotencyResult {
         $this->assertKey($key);
 
-        return DB::transaction(function () use ($scope, $actorId, $key, $requestHash, $callback): IdempotencyResult {
+        return ResilientTransaction::run(function () use ($scope, $actorId, $key, $requestHash, $callback): IdempotencyResult {
             $now = Date::now();
 
             $inserted = IdempotencyKey::insertOrIgnore([

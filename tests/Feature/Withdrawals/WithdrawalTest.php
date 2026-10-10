@@ -3,6 +3,9 @@
 use App\Modules\Identity\Database\Seeders\RolePermissionSeeder;
 use App\Modules\Identity\Enums\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\PaymentProviders\Contracts\PayoutProviderInterface;
+use App\Modules\PaymentProviders\Exceptions\ProviderRequestException;
+use App\Modules\PaymentProviders\ProviderManager;
 use App\Modules\Wallets\Models\WalletBalance;
 use App\Modules\Withdrawals\Enums\HoldStatus;
 use App\Modules\Withdrawals\Models\WalletHold;
@@ -10,6 +13,7 @@ use App\Modules\Withdrawals\Models\Withdrawal;
 use App\Modules\Withdrawals\Services\WithdrawalService;
 use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
+use Mockery;
 use Tests\Support\WalletTestSupport;
 
 uses(WalletTestSupport::class);
@@ -176,4 +180,28 @@ it('lets the owner cancel a reserved withdrawal and frees the funds', function (
         ->assertJsonPath('data.status', 'cancelled');
 
     expect(WalletBalance::find($this->wallet->id)->reserved_balance)->toBe(0);
+});
+
+it('marks a withdrawal reconciling when the payout provider times out', function () {
+    Sanctum::actingAs($this->customer);
+    $withdrawal = Withdrawal::find(createWithdrawal(amount: 3000, fee: 100)->json('data.id'));
+
+    $provider = Mockery::mock(PayoutProviderInterface::class);
+    $provider->shouldReceive('initiate')->andThrow(
+        new ProviderRequestException('fake', 'connection timed out', true),
+    );
+
+    $manager = Mockery::mock(ProviderManager::class);
+    $manager->shouldReceive('payoutProvider')->andReturn($provider);
+    $this->app->instance(ProviderManager::class, $manager);
+
+    Sanctum::actingAs($this->finance);
+    $this->postJson("/api/v1/withdrawals/{$withdrawal->id}/initiate")
+        ->assertOk()
+        ->assertJsonPath('data.status', 'reconciling');
+
+    $balance = WalletBalance::find($this->wallet->id);
+    expect($withdrawal->fresh()->status->value)->toBe('reconciling')
+        ->and($balance->reserved_balance)->toBe(3100)
+        ->and(WalletHold::where('wallet_id', $this->wallet->id)->first()->status)->toBe(HoldStatus::Active);
 });

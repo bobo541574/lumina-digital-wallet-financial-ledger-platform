@@ -11,7 +11,7 @@ return [
     | PaymentProviderInterface / CollectableProvider / PayoutProviderInterface.
     | The "fake" provider backs local development and tests.
     |
-    | Endpoints mirror the merchant sandboxes used by the industry references
+    | Endpoints mirror the merchant sandboxes used by the industry reference
     | (myanmar-payments). Swap them for the live values your
     | merchant agreements provide. Payout (disbursement) adapters are
     | config-gated: they refuse to run until a payout endpoint is configured.

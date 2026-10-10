@@ -25,7 +25,6 @@ use App\Modules\PaymentProviders\Support\Signature\AyaCrypto;
  * never from an unsigned webhook.
  *
  * @see https://github.com/hakhant21/myanmar-payments
- * @see https://github.com/hakhant21/myanmar-payments
  */
 class AyaPayProvider implements CollectableProvider, PaymentProviderInterface
 {

@@ -16,6 +16,9 @@ enum ErrorCode: string
     case NotOwner = 'NOT_OWNER';
     case ResourceNotFound = 'RESOURCE_NOT_FOUND';
     case MfaRequired = 'MFA_REQUIRED';
+    case TwoFactorNotEnabled = 'TWO_FACTOR_NOT_ENABLED';
+    case TwoFactorAlreadyEnabled = 'TWO_FACTOR_ALREADY_ENABLED';
+    case TwoFactorInvalidCode = 'TWO_FACTOR_INVALID_CODE';
 
     // Validation
     case ValidationFailed = 'VALIDATION_FAILED';
@@ -83,8 +86,9 @@ enum ErrorCode: string
     public function httpStatus(): int
     {
         return match ($this) {
-            self::Unauthenticated, self::TokenExpired => 401,
-            self::Forbidden, self::NotOwner, self::MfaRequired,
+            self::Unauthenticated, self::TokenExpired, self::MfaRequired,
+            self::TwoFactorInvalidCode => 401,
+            self::Forbidden, self::NotOwner,
             self::DepositSelfApproval => 403,
             self::ResourceNotFound, self::WalletNotFound,
             self::DepositNotFound, self::WithdrawalNotFound,
@@ -96,7 +100,8 @@ enum ErrorCode: string
             self::DepositInvalidState, self::DepositAlreadySettled,
             self::WithdrawalInvalidState, self::HoldReleaseUnsafe,
             self::PayoutAlreadySettled, self::HoldExpired,
-            self::ConcurrentModification,
+            self::ConcurrentModification, self::TwoFactorNotEnabled,
+            self::TwoFactorAlreadyEnabled,
             self::WebhookDuplicate => 409,
             self::WalletFrozen => 423,
             self::ProviderUnavailable, self::TemporaryFailure => 503,
