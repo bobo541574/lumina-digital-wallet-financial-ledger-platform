@@ -44,6 +44,7 @@ enum ErrorCode: string
     case LedgerDuplicateSource = 'LEDGER_DUPLICATE_SOURCE';
     case LedgerImmutable = 'LEDGER_IMMUTABLE';
     case ReversalAlreadyExists = 'REVERSAL_ALREADY_EXISTS';
+    case JournalNotReversible = 'JOURNAL_NOT_REVERSIBLE';
 
     // Deposits
     case DepositNotFound = 'DEPOSIT_NOT_FOUND';
@@ -66,6 +67,10 @@ enum ErrorCode: string
     case ProviderTimeout = 'PROVIDER_TIMEOUT';
     case ProviderRejected = 'PROVIDER_REJECTED';
 
+    // Reconciliation
+    case ReconciliationItemNotFound = 'RECONCILIATION_ITEM_NOT_FOUND';
+    case ReconciliationItemAlreadyResolved = 'RECONCILIATION_ITEM_ALREADY_RESOLVED';
+
     // Concurrency & infrastructure
     case ConcurrentModification = 'CONCURRENT_MODIFICATION';
     case TemporaryFailure = 'TEMPORARY_FAILURE';
@@ -82,10 +87,12 @@ enum ErrorCode: string
             self::Forbidden, self::NotOwner, self::MfaRequired,
             self::DepositSelfApproval => 403,
             self::ResourceNotFound, self::WalletNotFound,
-            self::DepositNotFound, self::WithdrawalNotFound => 404,
+            self::DepositNotFound, self::WithdrawalNotFound,
+            self::ReconciliationItemNotFound => 404,
             self::IdempotencyKeyReused, self::IdempotencyInProgress,
             self::WalletClosed, self::LedgerDuplicateSource,
             self::LedgerImmutable, self::ReversalAlreadyExists,
+            self::JournalNotReversible, self::ReconciliationItemAlreadyResolved,
             self::DepositInvalidState, self::DepositAlreadySettled,
             self::WithdrawalInvalidState, self::HoldReleaseUnsafe,
             self::PayoutAlreadySettled, self::HoldExpired,

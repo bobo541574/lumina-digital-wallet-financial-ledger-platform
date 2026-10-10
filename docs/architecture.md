@@ -211,6 +211,55 @@ gap between "the database committed" and "the world was told".
 - `php artisan partitions:ensure` pre-creates partitions; `partitions:ensure
   --check` reports missing months (non-zero exit) for health monitoring.
 
+## Reconciliation & financial recovery
+
+Reconciliation is **read-only and non-correcting**: it detects and records
+discrepancies, but never auto-adjusts a balance or ledger entry. Corrections are
+explicit, permissioned and audited.
+
+### Layers (`App\Modules\Reconciliation`)
+
+- **Wallet** (`WalletReconciliationService`): recomputes each wallet's posted
+  balance from `ledger_postings` (signed by account normal balance) and its
+  reserved balance from active `wallet_holds`, then compares both against the
+  cached `wallet_balances` projection.
+- **Provider** (`ProviderReconciliationService::reconcileTransactions`): matches
+  each `provider_settlement_line` to our deposits/withdrawals by
+  `provider_transaction_id` (falling back to `reference`) and classifies every
+  difference as `missing`, `duplicate`, `amount_mismatch` or `status_mismatch`.
+- **Settlement** (`ProviderReconciliationService::reconcileSettlements`): checks a
+  settlement's declared net total against the sum of its lines.
+
+### Runs and items
+
+- `ReconciliationRunner` creates a `reconciliation_runs` row per layer with
+  `status` `running → completed | completed_with_discrepancies | failed`; a failed
+  run captures the error rather than throwing.
+- Every difference is a `reconciliation_items` row (`open` by default) carrying the
+  layer, classification, subject, `expected`/`actual` snapshots and a signed
+  `difference`.
+- `ReconciliationResolutionService::resolve()` marks an item `resolved`/`ignored`
+  exactly once (double-resolution → `RECONCILIATION_ITEM_ALREADY_RESOLVED`) and
+  writes an `audit_events` record.
+- `php artisan reconciliation:run [--layer=wallet|provider|settlement|all]`;
+  `php artisan reconciliation:alert` reports unresolved discrepancies.
+
+### Correction (journal reversal)
+
+`LedgerReversalService` posts an equal-and-opposite `reversal` journal that offsets
+the original exactly (never mutating it) and records a `journal.reversed` outbox
+event. A journal may be reversed at most once (`REVERSAL_ALREADY_EXISTS`), and a
+reversal itself cannot be reversed (`JOURNAL_NOT_REVERSIBLE`).
+
+### Admin endpoints (`/api/v1/admin`, Sanctum)
+
+| Method & path                                         | Permission          |
+| ----------------------------------------------------- | ------------------- |
+| `GET  reconciliation/runs`, `runs/{run}`, `items`     | `reconciliation.view` |
+| `POST reconciliation/run`                             | `reconciliation.run`  |
+| `POST reconciliation/items/{item}/resolve`            | `reconciliation.run`  |
+| `POST journal-entries/{journalEntry}/reverse`         | `ledger.correct`      |
+
 ## Testing conventions
 
 - Tests live in `tests/Unit` and `tests/Feature`, mirroring the module path.

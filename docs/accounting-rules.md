@@ -147,7 +147,10 @@ No ledger entry. Release the hold only: `reserved_balance -= 2,000`.
 ### 4.8 Correction / reversal
 
 To reverse a journal, post a new journal with every direction inverted and equal amounts.
-Link via `reverses_journal_entry_id`. The original is never modified.
+Link via `reverses_journal_entry_id`. The original is never modified. A journal may be
+reversed at most once (`REVERSAL_ALREADY_EXISTS`), and a reversal itself cannot be reversed
+(`JOURNAL_NOT_REVERSIBLE`). Reversals are performed by `LedgerReversalService` under the
+`ledger.correct` permission and emit a `journal.reversed` outbox event.
 
 ---
 

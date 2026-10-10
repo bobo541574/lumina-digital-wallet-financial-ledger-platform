@@ -111,6 +111,7 @@ Rules:
 | `LEDGER_DUPLICATE_SOURCE`| 409  | Journal already exists for source              |
 | `LEDGER_IMMUTABLE`       | 409  | Attempt to mutate a posted entry               |
 | `REVERSAL_ALREADY_EXISTS`| 409  | Journal already reversed                       |
+| `JOURNAL_NOT_REVERSIBLE` | 409  | Journal cannot be reversed (e.g. a reversal)   |
 
 ### 3.6 Deposits
 
@@ -145,7 +146,14 @@ Rules:
 \* `WEBHOOK_DUPLICATE` returns `2xx` so the provider stops retrying; it is recorded but
 is not treated by the client as an error.
 
-### 3.9 Concurrency & infrastructure
+### 3.9 Reconciliation
+
+| Code                                    | HTTP | Notes                                    |
+| --------------------------------------- | ---- | ---------------------------------------- |
+| `RECONCILIATION_ITEM_NOT_FOUND`         | 404  | Unknown discrepancy item                 |
+| `RECONCILIATION_ITEM_ALREADY_RESOLVED`  | 409  | Item already resolved/ignored            |
+
+### 3.10 Concurrency & infrastructure
 
 | Code                     | HTTP | Notes                                          |
 | ------------------------ | ---- | ---------------------------------------------- |

@@ -29,6 +29,7 @@ enum Permission: string
 
     // Ledger & audit
     case LedgerView = 'ledger.view';
+    case LedgerCorrect = 'ledger.correct';
     case AuditView = 'audit.view';
 
     // Reconciliation
@@ -74,6 +75,7 @@ enum Permission: string
                 self::WithdrawalsApprove,
                 self::WithdrawalsProcess,
                 self::LedgerView,
+                self::LedgerCorrect,
                 self::ReconciliationView,
                 self::ReconciliationRun,
             ],
