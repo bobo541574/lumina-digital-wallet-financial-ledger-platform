@@ -41,6 +41,7 @@ composer bench          # Performance benchmarks (excluded from default)
 | `docs/accounting-rules.md`           | Chart of accounts, posting rules, reversal  |
 | `docs/api-error-codes.md`            | Error envelope and code catalog             |
 | `docs/architecture.md`               | Modules, layering, conventions              |
+| `docs/deployment.md`                  | Deployment, ops, runbooks, checklist        |
 
 ## Security & reliability
 
@@ -65,4 +66,4 @@ See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the standard gate
 - [x] Phase 07 — Outbox & webhooks
 - [x] Phase 08 — Reconciliation
 - [x] Phase 09 — Security, reliability & performance (core)
-- [ ] Phase 10 — Deployment & operations
+- [x] Phase 10 — Deployment & operations
