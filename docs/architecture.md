@@ -171,6 +171,46 @@ The customer-facing callback route is
 payout callbacks land on `.../{provider}/payout-webhook`. Both verify signatures
 before doing anything, so they can sit outside the session/auth middleware.
 
+## Events, outbox & partitioning
+
+Financial writes do not publish side effects inline. Instead, an outbox message
+is inserted **inside the same transaction** as the ledger write, so either the
+money movement and its event are both committed or neither is. This closes the
+gap between "the database committed" and "the world was told".
+
+### Transactional outbox (`App\Modules\Outbox`)
+
+- `OutboxService::record(...)` writes a `pending` message and asserts it is called
+  from inside a transaction (`OutboxNotTransactionalException` otherwise).
+- `TransferService`, `DepositService` and `WithdrawalService` record
+  `transfer.completed`, `deposit.succeeded`, `withdrawal.succeeded` /
+  `withdrawal.failed` from within their existing transaction boundaries.
+- `OutboxProcessor::process()` claims pending messages with
+  `FOR UPDATE SKIP LOCKED` (safe for concurrent workers), marks them `processing`,
+  dispatches a `DomainEvent`, then marks them `processed`.
+- Failures retry with backoff (`config/outbox.php`); after `max_attempts` the
+  message is parked as `failed` for reconciliation. Messages left `processing`
+  by a crashed worker are reclaimed after `processing_timeout` seconds, so
+  delivery resumes after a restart.
+- Delivery is **at-least-once**: consumers must be idempotent. Run the worker
+  with `php artisan outbox:process`.
+
+### Monthly partitions (`App\Modules\PaymentEvents`)
+
+- `payment_events` is an append-only, high-volume event log, partitioned monthly
+  by `RANGE (occurred_at)`. The primary key is `(id, occurred_at)` because
+  PostgreSQL requires the partition key in every primary key; ids stay globally
+  unique by UUID convention.
+- A `payment_events_default` partition guarantees writes never fail, even for a
+  month with no partition yet.
+- `PartitionManager::ensure()` pre-creates the current month plus N future
+  months, named `<table>_<YYYY>_<MM>`, idempotently, and moves any rows out of
+  the default partition before attaching a new range.
+- Partition-aware indexes are declared on the parent and inherited by every
+  partition. Timestamp-range queries prune unrelated partitions.
+- `php artisan partitions:ensure` pre-creates partitions; `partitions:ensure
+  --check` reports missing months (non-zero exit) for health monitoring.
+
 ## Testing conventions
 
 - Tests live in `tests/Unit` and `tests/Feature`, mirroring the module path.

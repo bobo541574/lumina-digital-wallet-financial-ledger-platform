@@ -8,6 +8,7 @@ use App\Modules\Ledger\DTOs\JournalPostingData;
 use App\Modules\Ledger\Enums\JournalEntryType;
 use App\Modules\Ledger\Exceptions\LedgerAccountInvalidException;
 use App\Modules\Ledger\Models\LedgerAccount;
+use App\Modules\Outbox\Services\OutboxService;
 use App\Modules\Shared\Errors\ErrorCode;
 use App\Modules\Shared\Exceptions\DomainException;
 use App\Modules\Shared\Idempotency\IdempotencyOutcome;
@@ -35,6 +36,7 @@ class TransferService
         private readonly LedgerPostingServiceInterface $ledger,
         private readonly WalletBalanceService $balances,
         private readonly IdempotencyService $idempotency,
+        private readonly OutboxService $outbox,
     ) {}
 
     public function transfer(TransferData $data): IdempotencyResult
@@ -138,6 +140,17 @@ class TransferService
             'status' => TransferStatus::Succeeded,
             'journal_entry_id' => $result->journal->id,
         ])->save();
+
+        $this->outbox->record('transfer', $transfer->id, 'transfer.completed', [
+            'transfer_id' => $transfer->id,
+            'reference' => $transfer->reference,
+            'sender_wallet_id' => $sender->id,
+            'recipient_wallet_id' => $recipient->id,
+            'currency' => $data->currencyCode,
+            'amount' => $data->amount,
+            'fee' => $data->fee,
+            'journal_entry_id' => $result->journal->id,
+        ]);
 
         return new IdempotencyOutcome(
             body: (new TransferResource($transfer))->resolve(),

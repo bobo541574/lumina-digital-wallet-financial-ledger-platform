@@ -10,6 +10,7 @@ use App\Modules\Ledger\DTOs\JournalPostingData;
 use App\Modules\Ledger\Enums\JournalEntryType;
 use App\Modules\Ledger\Exceptions\LedgerAccountInvalidException;
 use App\Modules\Ledger\Models\LedgerAccount;
+use App\Modules\Outbox\Services\OutboxService;
 use App\Modules\PaymentProviders\ProviderManager;
 use App\Modules\Shared\Idempotency\IdempotencyOutcome;
 use App\Modules\Shared\Idempotency\IdempotencyResult;
@@ -34,6 +35,7 @@ class WithdrawalService
         private readonly ProviderManager $providers,
         private readonly IdempotencyService $idempotency,
         private readonly AuditLogger $audit,
+        private readonly OutboxService $outbox,
     ) {}
 
     public function request(WithdrawalData $data): IdempotencyResult
@@ -106,26 +108,28 @@ class WithdrawalService
         $provider = $this->providers->payoutProvider((string) $withdrawal->provider);
         $result = $provider->initiate($withdrawal);
 
-        $withdrawal->forceFill([
-            'status' => $result->status,
-            'provider_reference' => $result->providerReference ?? $withdrawal->provider_reference,
-            'provider_transaction_id' => $result->providerTransactionId,
-            'failure_code' => $result->failureCode,
-            'processed_by' => $operator->id,
-            'initiated_at' => now(),
-        ])->save();
+        return DB::transaction(function () use ($withdrawal, $operator, $result): Withdrawal {
+            $withdrawal->forceFill([
+                'status' => $result->status,
+                'provider_reference' => $result->providerReference ?? $withdrawal->provider_reference,
+                'provider_transaction_id' => $result->providerTransactionId,
+                'failure_code' => $result->failureCode,
+                'processed_by' => $operator->id,
+                'initiated_at' => now(),
+            ])->save();
 
-        $this->audit->record('withdrawal.initiate', 'withdrawal', $withdrawal->id, ['status' => 'reserved'], ['status' => $result->status->value], $operator);
+            $this->audit->record('withdrawal.initiate', 'withdrawal', $withdrawal->id, ['status' => 'reserved'], ['status' => $result->status->value], $operator);
 
-        if ($result->status === WithdrawalStatus::Succeeded) {
-            return $this->settleSucceeded($withdrawal, $result->providerTransactionId);
-        }
+            if ($result->status === WithdrawalStatus::Succeeded) {
+                return $this->settleSucceeded($withdrawal, $result->providerTransactionId);
+            }
 
-        if ($result->status === WithdrawalStatus::Failed) {
-            return $this->settleFailed($withdrawal, $result->failureCode ?? 'PROVIDER_REJECTED');
-        }
+            if ($result->status === WithdrawalStatus::Failed) {
+                return $this->settleFailed($withdrawal, $result->failureCode ?? 'PROVIDER_REJECTED');
+            }
 
-        return $withdrawal;
+            return $withdrawal;
+        });
     }
 
     /**
@@ -265,6 +269,17 @@ class WithdrawalService
 
         $this->audit->record('withdrawal.settle', 'withdrawal', $withdrawal->id, [], ['status' => 'succeeded', 'journal_entry_id' => $withdrawal->journal_entry_id]);
 
+        $this->outbox->record('withdrawal', $withdrawal->id, 'withdrawal.succeeded', [
+            'withdrawal_id' => $withdrawal->id,
+            'reference' => $withdrawal->reference,
+            'wallet_id' => $withdrawal->wallet_id,
+            'currency' => $withdrawal->currency_code,
+            'amount' => $withdrawal->amount,
+            'fee' => $withdrawal->fee,
+            'provider' => $withdrawal->provider,
+            'journal_entry_id' => $withdrawal->journal_entry_id,
+        ]);
+
         return $withdrawal;
     }
 
@@ -281,6 +296,16 @@ class WithdrawalService
         $withdrawal = $withdrawal->refresh();
 
         $this->audit->record('withdrawal.fail', 'withdrawal', $withdrawal->id, [], ['status' => 'failed', 'failure_code' => $failureCode]);
+
+        $this->outbox->record('withdrawal', $withdrawal->id, 'withdrawal.failed', [
+            'withdrawal_id' => $withdrawal->id,
+            'reference' => $withdrawal->reference,
+            'wallet_id' => $withdrawal->wallet_id,
+            'currency' => $withdrawal->currency_code,
+            'amount' => $withdrawal->amount,
+            'provider' => $withdrawal->provider,
+            'failure_code' => $failureCode,
+        ]);
 
         return $withdrawal;
     }

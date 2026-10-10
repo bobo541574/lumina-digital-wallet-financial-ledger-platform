@@ -15,6 +15,7 @@ use App\Modules\Ledger\DTOs\JournalPostingData;
 use App\Modules\Ledger\Enums\JournalEntryType;
 use App\Modules\Ledger\Exceptions\LedgerAccountInvalidException;
 use App\Modules\Ledger\Models\LedgerAccount;
+use App\Modules\Outbox\Services\OutboxService;
 use App\Modules\PaymentProviders\DTOs\CollectRequest;
 use App\Modules\PaymentProviders\DTOs\PaymentIntentResult;
 use App\Modules\PaymentProviders\Enums\PaymentStatus;
@@ -30,6 +31,7 @@ class DepositService
         private readonly LedgerPostingServiceInterface $ledger,
         private readonly AuditLogger $audit,
         private readonly ProviderManager $providers,
+        private readonly OutboxService $outbox,
     ) {}
 
     public function createManual(User $user, string $walletId, int $amount, array $metadata = []): Deposit
@@ -258,6 +260,16 @@ class DepositService
             'settled_at' => now(),
             'confirmed_by' => $confirmedBy ?? $deposit->confirmed_by,
         ])->save();
+
+        $this->outbox->record('deposit', $deposit->id, 'deposit.succeeded', [
+            'deposit_id' => $deposit->id,
+            'reference' => $deposit->reference,
+            'wallet_id' => $deposit->wallet_id,
+            'currency' => $deposit->currency_code,
+            'amount' => $deposit->amount,
+            'channel' => $deposit->channel->value,
+            'journal_entry_id' => $result->journal->id,
+        ]);
     }
 
     private function ownedWallet(User $user, string $walletId): Wallet
