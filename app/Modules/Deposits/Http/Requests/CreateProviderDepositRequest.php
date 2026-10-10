@@ -2,7 +2,9 @@
 
 namespace App\Modules\Deposits\Http\Requests;
 
+use App\Modules\PaymentProviders\Enums\PaymentProvider;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class CreateProviderDepositRequest extends FormRequest
 {
@@ -19,7 +21,8 @@ class CreateProviderDepositRequest extends FormRequest
         return [
             'wallet_id' => ['required', 'uuid'],
             'amount' => ['required', 'integer', 'min:1'],
-            'provider' => ['required', 'string', 'in:fake'],
+            'provider' => ['required', 'string', Rule::in(PaymentProvider::collectable())],
+            'metadata' => ['nullable', 'array'],
         ];
     }
 }

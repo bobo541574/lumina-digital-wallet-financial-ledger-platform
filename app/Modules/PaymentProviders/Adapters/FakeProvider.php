@@ -2,21 +2,46 @@
 
 namespace App\Modules\PaymentProviders\Adapters;
 
+use App\Modules\PaymentProviders\Contracts\CollectableProvider;
 use App\Modules\PaymentProviders\Contracts\PaymentProviderInterface;
+use App\Modules\PaymentProviders\DTOs\CollectRequest;
+use App\Modules\PaymentProviders\DTOs\PaymentIntentResult;
 use App\Modules\PaymentProviders\DTOs\ProviderWebhookEvent;
+use App\Modules\PaymentProviders\Enums\PaymentStatus;
 
 /**
  * Deterministic provider used for local development and tests. Webhooks are
  * signed with HMAC-SHA256 over the raw body using `payment.providers.fake.secret`
  * and sent in the `X-Signature` header.
  */
-class FakeProvider implements PaymentProviderInterface
+class FakeProvider implements CollectableProvider, PaymentProviderInterface
 {
     public function __construct(private readonly string $secret) {}
 
     public function name(): string
     {
         return 'fake';
+    }
+
+    public function createPayment(CollectRequest $request): PaymentIntentResult
+    {
+        return new PaymentIntentResult(
+            provider: 'fake',
+            status: PaymentStatus::Processing,
+            providerReference: $request->merchantReference,
+            providerTransactionId: 'FAKE-'.$request->merchantReference,
+            paymentUrl: null,
+        );
+    }
+
+    public function queryStatus(string $providerTransactionId): PaymentIntentResult
+    {
+        return new PaymentIntentResult(
+            provider: 'fake',
+            status: PaymentStatus::Processing,
+            providerReference: $providerTransactionId,
+            providerTransactionId: $providerTransactionId,
+        );
     }
 
     public function verifySignature(string $rawPayload, ?string $signature): bool

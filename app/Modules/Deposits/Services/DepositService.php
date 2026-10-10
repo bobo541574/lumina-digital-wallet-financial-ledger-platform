@@ -15,6 +15,10 @@ use App\Modules\Ledger\DTOs\JournalPostingData;
 use App\Modules\Ledger\Enums\JournalEntryType;
 use App\Modules\Ledger\Exceptions\LedgerAccountInvalidException;
 use App\Modules\Ledger\Models\LedgerAccount;
+use App\Modules\PaymentProviders\DTOs\CollectRequest;
+use App\Modules\PaymentProviders\DTOs\PaymentIntentResult;
+use App\Modules\PaymentProviders\Enums\PaymentStatus;
+use App\Modules\PaymentProviders\ProviderManager;
 use App\Modules\Wallets\Exceptions\WalletNotFoundException;
 use App\Modules\Wallets\Models\Wallet;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +29,7 @@ class DepositService
     public function __construct(
         private readonly LedgerPostingServiceInterface $ledger,
         private readonly AuditLogger $audit,
+        private readonly ProviderManager $providers,
     ) {}
 
     public function createManual(User $user, string $walletId, int $amount, array $metadata = []): Deposit
@@ -45,12 +50,29 @@ class DepositService
         ]);
     }
 
-    public function createProviderIntent(User $user, string $walletId, int $amount, string $provider): Deposit
+    /**
+     * Create a provider deposit intent: hand the request to the collect adapter,
+     * persist the returned provider identifiers, and settle immediately when the
+     * provider reports synchronous success (e.g. AYA push payments).
+     *
+     * @param  array<string, mixed>  $metadata
+     */
+    public function createProviderIntent(User $user, string $walletId, int $amount, string $provider, array $metadata = []): Deposit
     {
         $wallet = $this->ownedWallet($user, $walletId);
+        $reference = $this->reference('PAY');
 
-        return Deposit::create([
-            'reference' => $this->reference(),
+        $intent = $this->providers->collectProvider($provider)->createPayment(new CollectRequest(
+            merchantReference: $reference,
+            amount: $amount,
+            currency: $wallet->currency_code,
+            callbackUrl: route('payment-providers.webhook', ['provider' => $provider]),
+            redirectUrl: (string) ($metadata['redirect_url'] ?? config('payment.redirect_url') ?? ''),
+            metadata: $metadata,
+        ));
+
+        $deposit = Deposit::create([
+            'reference' => $reference,
             'user_id' => $user->id,
             'wallet_id' => $wallet->id,
             'currency_code' => $wallet->currency_code,
@@ -58,10 +80,39 @@ class DepositService
             'channel' => DepositChannel::Provider,
             'status' => DepositStatus::AwaitingPayment,
             'provider' => $provider,
-            'provider_reference' => $this->reference('PAY'),
+            'provider_reference' => $reference,
+            'provider_transaction_id' => $intent->providerTransactionId,
             'created_by' => $user->id,
+            'metadata' => $this->intentMetadata($metadata, $intent),
             'occurred_at' => now(),
         ]);
+
+        if ($intent->status === PaymentStatus::Succeeded) {
+            return $this->markSucceededFromProvider($deposit, $intent->providerTransactionId);
+        }
+
+        if ($intent->status === PaymentStatus::Failed) {
+            return $this->markFailed($deposit, 'PROVIDER_DECLINED');
+        }
+
+        return $deposit;
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     * @return array<string, mixed>|null
+     */
+    private function intentMetadata(array $metadata, PaymentIntentResult $intent): ?array
+    {
+        if ($intent->paymentUrl !== null) {
+            $metadata['payment_url'] = $intent->paymentUrl;
+        }
+
+        if ($intent->extra !== []) {
+            $metadata['provider_data'] = $intent->extra;
+        }
+
+        return $metadata === [] ? null : $metadata;
     }
 
     public function approve(Deposit $deposit, User $operator): Deposit

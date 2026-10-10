@@ -15,4 +15,5 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Provider callbacks authenticate via signature, not the session.
-Route::post('payment-providers/{provider}/webhook', [WebhookController::class, 'handle']);
+Route::post('payment-providers/{provider}/webhook', [WebhookController::class, 'handle'])
+    ->name('payment-providers.webhook');

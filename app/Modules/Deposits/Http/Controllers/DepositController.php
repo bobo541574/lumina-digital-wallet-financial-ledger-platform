@@ -79,6 +79,7 @@ class DepositController extends Controller
                     $payload['wallet_id'],
                     (int) $payload['amount'],
                     $payload['provider'],
+                    $payload['metadata'] ?? [],
                 );
 
                 return new IdempotencyOutcome(

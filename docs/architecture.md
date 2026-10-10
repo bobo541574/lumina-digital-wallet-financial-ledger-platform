@@ -88,6 +88,39 @@ implementation is bound in `LedgerServiceProvider`.
   `nullOnDelete`. Business deletion logic lives in services (usually soft-delete or
   reversal), with the database constraint as the final safety net.
 
+### Delete behavior — database constraints vs code
+
+Two different concerns must not be mixed:
+
+- **Database constraints decide what may or may not be deleted (integrity).** They are
+  unconditional: raw SQL, queued jobs, console commands, and admin tooling all go
+  through the same foreign keys, so a rule cannot be bypassed or forgotten.
+- **Code decides when and how a deletion happens (workflow).** Soft-delete,
+  deactivation, reversals, conditional checks, and audit logging live in services —
+  the database has no way to express them.
+
+Decision rule:
+
+| Relationship | DB level | Example in this repo |
+| :--- | :--- | :--- |
+| Owned technical rows (pivots, tokens, derived caches) | `cascadeOnDelete` | `permission_role`, `role_user`, `permission_user`, `wallet_balances` — meaningless without the parent; cleaned atomically in the same statement |
+| Financial / immutable rows | `restrictOnDelete` | `wallets.user_id`, `deposits.*`, `withdrawals.*`, `transfers.*`, `ledger_postings.*`, `wallet_holds.wallet_id` — append-only money facts must never disappear |
+| Optional back-refs / audit pointers | `nullOnDelete` | `created_by`, `approved_by`, `confirmed_by`, `actor_id`, `requested_by`, `processed_by`, `journal_entry_id` — the row survives, only the pointer is dropped |
+
+Cascade belongs at the database level even for technical rows because `ON DELETE
+CASCADE` removes parent + children in one transactional statement — no partial
+deletes, no race window — whereas re-implementing it in Eloquent events introduces
+a second, out-of-band source of truth.
+
+Money-touching tables must never cascade. Deleting a user along with their wallets,
+deposits and journal history would destroy the audit trail and the balance story;
+instead, account closure is a code-level decision (soft flag / deactivation) and
+any money movement is reversed with a contra-posting, never deleted.
+
+Complementarity: the database blocks what must not be deleted; the service layer
+owns the business decision. Service or model events are a complement for audit and
+workflow and are never the only integrity guarantee.
+
 ### Column & reference conventions
 
 - **UUIDs live in `uuid` columns only.** Never store a UUID in a `string`/`varchar`
@@ -103,6 +136,40 @@ implementation is bound in `LedgerServiceProvider`.
   Constraints hold for raw SQL, queued jobs, and other services.
 - These rules are enforced by `tests/Unit/MigrationConventionsTest.php`; new
   migrations that break them fail the suite.
+
+## Payment providers
+
+`App\Modules\PaymentProviders` owns the outbound gateway adapters and the signed
+webhook pipeline. Integration happens only through `ProviderManager`, which both
+`DepositService` (collect) and `WithdrawalService` (payout) receive; the module
+is not registered as a Laravel service provider because every adapter is
+resolved explicitly from `config/payment.php`.
+
+### Adapters
+
+- `CollectableProvider::createPayment(CollectRequest)` opens a pay-in session and
+  returns a normalized `PaymentIntentResult` (`payment_url`, provider ids, and a
+  `PaymentStatus` of `processing`/`succeeded`/`failed`).
+- `PaymentProviderInterface::verifySignature()` / `parseEvent()` power the webhook
+  inbox: verify → dedupe on `(provider, event_id)` → verify amount/currency →
+  post atomically (see `docs/transaction-state-machines.md`).
+- Real providers (`kbzpay`, `wavemoney`, `aya`, `2c2p`) are config-driven. Their
+  **payout** adapters are config-gated: they throw `ProviderUnavailableException`
+  until a `payout.endpoint` is configured, because disbursement field names must
+  be confirmed against each merchant's agreement before going live.
+- Settlement is **synchronous** when the provider reports it (`succeeded` on
+  `createPayment`, e.g. AYA push), otherwise **asynchronous** via webhook.
+- AYA does not sign callbacks: `verifySignature()` is always `false`, so AYA
+  settlement comes from a synchronous result or `checkRequestPayment`/reconcilation,
+  never from an unsigned webhook.
+
+### Webhooks
+
+The customer-facing callback route is
+`POST /api/v1/payment-providers/{provider}/webhook` (named
+`payment-providers.webhook`, used as the `callbackUrl` for collect intents);
+payout callbacks land on `.../{provider}/payout-webhook`. Both verify signatures
+before doing anything, so they can sit outside the session/auth middleware.
 
 ## Testing conventions
 
