@@ -26,6 +26,15 @@ Business: Single platform, multi-currency
 
 Manual နဲ့ payment-provider deposit/withdrawal နှစ်မျိုးလုံး ပါဝင်မယ်။
 
+### Frontend & UI (deferred)
+
+UI ကို သီးခြား phase အနေနဲ့ ထားမယ်။ UI phase စတင်တဲ့အခါ component decisions အတွက် reference က `https://ui.shadcn.com/docs/components` ပေးထားတဲ့ flows ဖြစ်ပြီး အဲဒီ patterns အတိုင်း implement လုပ်မယ်။
+
+* Stack — Vue 3 + TypeScript (project scope အတိုင်း)
+* Reference — `ui.shadcn.com/docs/components` component flows (shadcn/ui က React-native ဖြစ်တာမို့ Vue port ဖြစ်တဲ့ shadcn-vue နဲ့ တူညီတဲ့ component set/flows ကို သုံးမယ်)
+* Approach — Components တွေကို UI phase မှာ flow-by-flow လိုက်ဖို့ပြီး project conventions (PHP API, RBAC permissions, audit) နဲ့ တွဲဖော်ပြမယ်
+* Note — ဒီ decision က နောက်ပိုင်း UI milestone တိုင်းမှာ developer/agent တွေ ဦးစွာ reference လုပ်ရမယ့် စာချုပ်ဖြစ်တယ်
+
 ### MVP ထဲမှာ ပါဝင်မယ့် features
 
 * User authentication, roles, permissions
@@ -749,9 +758,9 @@ Done when: Database restore ကို လက်တွေ့စမ်းသပ်
 
 ## Milestone tracker
 
-0 / 5 complete
+3 / 5 complete
 
-M1 — Foundation
+M1 — Foundation — ✅ complete
 
 Phase 00–02
 
@@ -761,7 +770,7 @@ Phase 00–02
 
 • Ledger posting tests pass
 
-M2 — Core money movement
+M2 — Core money movement — ✅ complete
 
 Phase 03–05
 
@@ -771,7 +780,7 @@ Phase 03–05
 
 • Withdrawal holds and timeout recovery work
 
-M3 — User and admin workflows
+M3 — User and admin workflows — ✅ complete
 
 Phase 06
 

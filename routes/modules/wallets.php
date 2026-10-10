@@ -9,4 +9,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('wallets/{wallet}/balance', [WalletController::class, 'balance']);
     Route::get('wallets/{wallet}/transactions', [WalletController::class, 'transactions']);
     Route::get('wallets/{wallet}/statement', [WalletController::class, 'statement']);
+    Route::get('wallets/{wallet}/statement/export', [WalletController::class, 'exportStatement']);
 });

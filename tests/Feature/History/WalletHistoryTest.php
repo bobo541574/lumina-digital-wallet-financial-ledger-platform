@@ -82,3 +82,25 @@ it('forbids viewing another customer wallet history', function () {
     $this->getJson("/api/v1/wallets/{$this->wallet->id}/transactions")->assertStatus(403);
     $this->getJson("/api/v1/wallets/{$this->wallet->id}/statement")->assertStatus(403);
 })->group('history');
+
+it('exports the wallet statement as csv', function () {
+    Sanctum::actingAs($this->alice);
+
+    $response = $this->get("/api/v1/wallets/{$this->wallet->id}/statement/export")
+        ->assertOk()
+        ->assertHeader('Content-Type', 'text/csv; charset=utf-8');
+
+    expect($response->headers->get('Content-Disposition'))->toContain('attachment');
+
+    $body = $response->streamedContent();
+    expect($body)->toContain('Opening Balance')
+        ->and($body)->toContain('Closing Balance')
+        ->and($body)->toContain('deposit')
+        ->and($body)->toContain('10000');
+})->group('history');
+
+it('forbids exporting another customer wallet statement', function () {
+    Sanctum::actingAs($this->bob);
+
+    $this->get("/api/v1/wallets/{$this->wallet->id}/statement/export")->assertStatus(403);
+})->group('history');

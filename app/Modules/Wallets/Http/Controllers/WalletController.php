@@ -17,6 +17,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class WalletController extends Controller
 {
@@ -98,5 +99,52 @@ class WalletController extends Controller
         $statement = $this->history->statement($wallet, $from, $to);
 
         return ApiResponse::success(new WalletStatementResource($statement));
+    }
+
+    public function exportStatement(Request $request, Wallet $wallet): StreamedResponse
+    {
+        $this->authorize('view', $wallet);
+
+        $filters = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+        ]);
+
+        $from = isset($filters['from'])
+            ? CarbonImmutable::parse($filters['from'])
+            : CarbonImmutable::now()->subDays(30)->startOfDay();
+        $to = isset($filters['to']) ? CarbonImmutable::parse($filters['to']) : CarbonImmutable::now();
+
+        $statement = $this->history->statement($wallet, $from, $to);
+
+        $filename = sprintf('statement-%s-%s-%s.csv', $wallet->id, $from->format('Y-m-d'), $to->format('Y-m-d'));
+        $headers = [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function () use ($statement): void {
+            $out = fopen('php://output', 'wb');
+
+            fputcsv($out, ['Date', 'Entry Type', 'Reference', 'Description', 'Amount', 'Currency']);
+
+            foreach ($statement['movements'] as $posting) {
+                fputcsv($out, [
+                    $posting->journalEntry?->occurred_at?->toIso8601String(),
+                    $posting->journalEntry?->entry_type?->value,
+                    $posting->journalEntry?->source_type,
+                    $posting->journalEntry?->description,
+                    $this->history->signedAmount($posting),
+                    $posting->currency_code,
+                ]);
+            }
+
+            fputcsv($out, ['Opening Balance', '', '', '', $statement['opening_balance'], $statement['currency']]);
+            fputcsv($out, ['Closing Balance', '', '', '', $statement['closing_balance'], $statement['currency']]);
+
+            fclose($out);
+        };
+
+        return new StreamedResponse($callback, 200, $headers);
     }
 }

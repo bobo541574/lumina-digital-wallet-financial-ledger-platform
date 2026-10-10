@@ -3,14 +3,21 @@
 namespace App\Modules\Admin\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Deposits\Enums\DepositStatus;
+use App\Modules\Deposits\Http\Resources\DepositResource;
 use App\Modules\Deposits\Models\Deposit;
+use App\Modules\Identity\Enums\Role;
+use App\Modules\Identity\Models\User;
 use App\Modules\Ledger\Models\JournalEntry;
 use App\Modules\Shared\Http\Responses\ApiResponse;
 use App\Modules\Transfers\Http\Resources\TransferResource;
 use App\Modules\Transfers\Models\Transfer;
+use App\Modules\Withdrawals\Enums\WithdrawalStatus;
+use App\Modules\Withdrawals\Http\Resources\WithdrawalResource;
 use App\Modules\Withdrawals\Models\Withdrawal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
@@ -76,6 +83,109 @@ class AdminController extends Controller
             meta: ['pagination' => [
                 'next_cursor' => $entries->nextCursor()?->encode(),
                 'prev_cursor' => $entries->previousCursor()?->encode(),
+            ]],
+        );
+    }
+
+    public function deposits(Request $request): JsonResponse
+    {
+        $this->authorize('deposits.approve');
+
+        $filters = $request->validate([
+            'status' => ['nullable', Rule::enum(DepositStatus::class)],
+            'provider' => ['nullable', 'string'],
+            'reference' => ['nullable', 'string'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $deposits = Deposit::query()
+            ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
+            ->when($filters['provider'] ?? null, fn ($q, $provider) => $q->where('provider', $provider))
+            ->when($filters['reference'] ?? null, fn ($q, $reference) => $q->where('reference', 'like', "%{$reference}%"))
+            ->when($filters['from'] ?? null, fn ($q, $from) => $q->where('created_at', '>=', $from))
+            ->when($filters['to'] ?? null, fn ($q, $to) => $q->where('created_at', '<=', $to))
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->cursorPaginate((int) ($filters['per_page'] ?? 25));
+
+        return ApiResponse::success(
+            DepositResource::collection($deposits),
+            meta: ['pagination' => [
+                'per_page' => $deposits->perPage(),
+                'next_cursor' => $deposits->nextCursor()?->encode(),
+                'prev_cursor' => $deposits->previousCursor()?->encode(),
+            ]],
+        );
+    }
+
+    public function withdrawals(Request $request): JsonResponse
+    {
+        $this->authorize('withdrawals.approve');
+
+        $filters = $request->validate([
+            'status' => ['nullable', Rule::enum(WithdrawalStatus::class)],
+            'provider' => ['nullable', 'string'],
+            'reference' => ['nullable', 'string'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $withdrawals = Withdrawal::query()
+            ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
+            ->when($filters['provider'] ?? null, fn ($q, $provider) => $q->where('provider', $provider))
+            ->when($filters['reference'] ?? null, fn ($q, $reference) => $q->where('reference', 'like', "%{$reference}%"))
+            ->when($filters['from'] ?? null, fn ($q, $from) => $q->where('created_at', '>=', $from))
+            ->when($filters['to'] ?? null, fn ($q, $to) => $q->where('created_at', '<=', $to))
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->cursorPaginate((int) ($filters['per_page'] ?? 25));
+
+        return ApiResponse::success(
+            WithdrawalResource::collection($withdrawals),
+            meta: ['pagination' => [
+                'per_page' => $withdrawals->perPage(),
+                'next_cursor' => $withdrawals->nextCursor()?->encode(),
+                'prev_cursor' => $withdrawals->previousCursor()?->encode(),
+            ]],
+        );
+    }
+
+    public function users(Request $request): JsonResponse
+    {
+        $this->authorize('users.manage');
+
+        $filters = $request->validate([
+            'q' => ['nullable', 'string', 'max:255'],
+            'role' => ['nullable', Rule::enum(Role::class)],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $users = User::query()
+            ->with('roles')
+            ->when($filters['q'] ?? null, fn ($q, $term) => $q->where(
+                fn ($w) => $w->where('name', 'like', "%{$term}%")->orWhere('email', 'like', "%{$term}%"),
+            ))
+            ->when($filters['role'] ?? null, fn ($q, $role) => $q->whereHas('roles', fn ($r) => $r->where('name', $role)))
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->cursorPaginate((int) ($filters['per_page'] ?? 25));
+
+        return ApiResponse::success(
+            $users->getCollection()->map(fn (User $user) => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'email_verified_at' => $user->email_verified_at?->toIso8601String(),
+                'roles' => $user->roles->pluck('name')->values(),
+                'created_at' => $user->created_at?->toIso8601String(),
+            ])->values(),
+            meta: ['pagination' => [
+                'per_page' => $users->perPage(),
+                'next_cursor' => $users->nextCursor()?->encode(),
+                'prev_cursor' => $users->previousCursor()?->encode(),
             ]],
         );
     }

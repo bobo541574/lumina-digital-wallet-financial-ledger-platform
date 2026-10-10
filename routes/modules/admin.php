@@ -11,6 +11,10 @@ Route::prefix('admin')->middleware('auth:sanctum')->group(function () {
     Route::post('wallets/{wallet}/freeze', [AdminWalletController::class, 'freeze']);
     Route::post('wallets/{wallet}/unfreeze', [AdminWalletController::class, 'unfreeze']);
 
+    Route::get('users', [AdminController::class, 'users']);
+    Route::get('deposits', [AdminController::class, 'deposits']);
+    Route::get('withdrawals', [AdminController::class, 'withdrawals']);
+
     Route::get('transfers', [AdminController::class, 'transfers']);
     Route::get('journal-entries', [AdminController::class, 'journalEntries']);
     Route::get('provider-transactions', [AdminController::class, 'providerTransactions']);
