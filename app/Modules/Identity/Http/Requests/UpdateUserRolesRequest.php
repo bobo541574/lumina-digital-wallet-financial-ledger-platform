@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Modules\Identity\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class UpdateUserRolesRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user() !== null && $this->user()->can('users.manage');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        return [
+            'roles' => ['present', 'array'],
+            'roles.*' => ['string', Rule::exists('roles', 'name')],
+        ];
+    }
+}

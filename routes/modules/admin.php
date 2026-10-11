@@ -2,6 +2,7 @@
 
 use App\Modules\Admin\Http\Controllers\AdminController;
 use App\Modules\Audit\Http\Controllers\AuditEventController;
+use App\Modules\Identity\Http\Controllers\AdminAccessController;
 use App\Modules\Identity\Http\Middleware\RequireTwoFactor;
 use App\Modules\Ledger\Http\Controllers\AdminJournalEntryController;
 use App\Modules\Reconciliation\Http\Controllers\AdminReconciliationController;
@@ -15,6 +16,14 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'throttle:admin', RequireTwo
     Route::post('wallets/{wallet}/unfreeze', [AdminWalletController::class, 'unfreeze']);
 
     Route::get('users', [AdminController::class, 'users']);
+    Route::get('users/{user}', [AdminAccessController::class, 'showUser']);
+    Route::put('users/{user}/roles', [AdminAccessController::class, 'updateUserRoles']);
+    Route::put('users/{user}/permissions', [AdminAccessController::class, 'updateUserPermissions']);
+
+    Route::get('roles', [AdminAccessController::class, 'roles']);
+    Route::get('roles/{role}', [AdminAccessController::class, 'showRole']);
+    Route::put('roles/{role}/permissions', [AdminAccessController::class, 'updateRolePermissions']);
+    Route::get('permissions', [AdminAccessController::class, 'permissions']);
     Route::get('deposits', [AdminController::class, 'deposits']);
     Route::get('withdrawals', [AdminController::class, 'withdrawals']);
 
