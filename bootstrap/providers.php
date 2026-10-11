@@ -2,6 +2,7 @@
 
 use App\Modules\Identity\Providers\IdentityServiceProvider;
 use App\Modules\Ledger\Providers\LedgerServiceProvider;
+use App\Modules\Notifications\Providers\NotificationsServiceProvider;
 use App\Modules\Outbox\Providers\OutboxServiceProvider;
 use App\Modules\PaymentEvents\Providers\PaymentEventsServiceProvider;
 use App\Modules\Reconciliation\Providers\ReconciliationServiceProvider;
@@ -15,5 +16,6 @@ return [
     LedgerServiceProvider::class,
     OutboxServiceProvider::class,
     PaymentEventsServiceProvider::class,
+    NotificationsServiceProvider::class,
     ReconciliationServiceProvider::class,
 ];

@@ -21,6 +21,12 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withBroadcasting(
+        __DIR__.'/../routes/channels.php',
+        // The SPA authenticates with a Sanctum bearer token rather than a session
+        // cookie, so channel authorization runs on the sanctum guard, not `web`.
+        attributes: ['middleware' => ['auth:sanctum']],
+    )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [
             AssignRequestId::class,

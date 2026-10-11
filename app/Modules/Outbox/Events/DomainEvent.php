@@ -20,6 +20,7 @@ final readonly class DomainEvent
         public string $aggregateId,
         public array $payload = [],
         public ?CarbonInterface $occurredAt = null,
+        public ?string $id = null,
     ) {}
 
     public function occurredAt(): CarbonInterface

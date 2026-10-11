@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Modules\Deposits\Models\Deposit;
 use App\Modules\Deposits\Policies\DepositPolicy;
+use App\Modules\Notifications\Models\UserNotification;
+use App\Modules\Notifications\Policies\UserNotificationPolicy;
 use App\Modules\Wallets\Models\Wallet;
 use App\Modules\Wallets\Policies\WalletPolicy;
 use App\Modules\Withdrawals\Models\Withdrawal;
@@ -31,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Wallet::class, WalletPolicy::class);
         Gate::policy(Deposit::class, DepositPolicy::class);
         Gate::policy(Withdrawal::class, WithdrawalPolicy::class);
+        Gate::policy(UserNotification::class, UserNotificationPolicy::class);
 
         $this->configureDatabaseTimeouts();
     }

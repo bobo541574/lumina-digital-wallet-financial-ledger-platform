@@ -30,6 +30,7 @@ class OutboxProcessor
                     aggregateType: $message->aggregate_type,
                     aggregateId: $message->aggregate_id,
                     payload: $message->payload ?? [],
+                    id: $message->id,
                 ));
 
                 $message->forceFill([
