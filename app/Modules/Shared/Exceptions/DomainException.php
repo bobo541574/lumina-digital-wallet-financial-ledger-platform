@@ -9,7 +9,7 @@ use RuntimeException;
  * Base class for all expected, business-level failures.
  *
  * Rendering is handled centrally in bootstrap/app.php and produces the
- * envelope documented in docs/api-error-codes.md.
+ * envelope documented in docs/architecture/api/error-codes.md.
  */
 class DomainException extends RuntimeException
 {

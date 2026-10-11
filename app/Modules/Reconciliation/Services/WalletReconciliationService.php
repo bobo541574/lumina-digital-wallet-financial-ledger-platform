@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
  * cached `wallet_balances` projection. Any difference is recorded as a
  * discrepancy; nothing is ever auto-corrected.
  *
- * @see docs/accounting-rules.md ("Wallet balance projection")
+ * @see docs/business/accounting-rules.md ("Wallet balance projection")
  */
 class WalletReconciliationService
 {

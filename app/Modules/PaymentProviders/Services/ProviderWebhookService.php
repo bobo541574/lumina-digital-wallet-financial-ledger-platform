@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Str;
 
 /**
- * Webhook pipeline (see docs/transaction-state-machines.md §4):
+ * Webhook pipeline (see docs/business/transaction-state-machines.md §4):
  *   verify signature -> dedupe on (provider, event_id) -> verify expected
  *   amount/currency/reference -> post atomically -> acknowledge 2xx.
  *

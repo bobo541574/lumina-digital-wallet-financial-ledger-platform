@@ -5,7 +5,7 @@ namespace App\Modules\Shared\Errors;
 /**
  * Stable, machine-readable API error codes.
  *
- * @see docs/api-error-codes.md
+ * @see docs/architecture/api/error-codes.md
  */
 enum ErrorCode: string
 {

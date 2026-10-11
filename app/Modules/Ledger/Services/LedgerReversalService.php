@@ -16,7 +16,7 @@ use App\Modules\Shared\Support\ResilientTransaction;
 
 /**
  * Posts a correction: an equal-and-opposite journal that exactly offsets the
- * original (see docs/accounting-rules.md "4.8 Correction / reversal"). The
+ * original (see docs/business/accounting-rules.md "4.8 Correction / reversal"). The
  * original entry is never mutated; a journal may be reversed at most once.
  */
 class LedgerReversalService
