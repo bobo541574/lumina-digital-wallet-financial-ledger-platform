@@ -3,7 +3,7 @@
 Digital Wallet & Financial Ledger Platform
 
 Status: Draft for approval (Phase 00)
-Companion to: `docs/business-rules.md`, `docs/accounting-rules.md`
+Companion to: `docs/business/business-rules.md`, `docs/business/accounting-rules.md`
 
 Every state machine lists: states, allowed transitions, the trigger/actor, the guard
 that must hold, and the side effects (ledger/balance/hold). Transitions not listed are

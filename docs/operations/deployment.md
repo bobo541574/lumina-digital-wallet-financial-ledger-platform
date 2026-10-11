@@ -3,6 +3,7 @@
 ## Requirements
 - PHP 8.4, PostgreSQL 16, Redis 7+, Node 20+ (for asset build).
 - Queue worker (`php artisan queue:work` or Horizon), and scheduler (`php artisan schedule:work`) in all non-local envs.
+- Realtime (optional): a long-running Reverb server (`php artisan reverb:start`) plus its public WebSocket endpoint when `BROADCAST_CONNECTION=reverb`.
 - `composer install --no-dev --optimize-autoloader` on deploy; run `php artisan config:cache`, `route:cache`, `view:cache` as appropriate.
 - Set secure secrets via environment (never commit `.env`). Rotate API keys/credentials on rotation.
 
@@ -27,6 +28,7 @@
 - Transactions: `ResilientTransaction::run` retries transient deadlocks/serialization failures (40001/40P01) up to 3 attempts. Keep financial operations in one transaction.
 - Provider timeout: `WithdrawalService` marks withdrawals `reconciling` on provider timeout (`PROVIDER_TIMEOUT`) and leaves holds intact; reconciled via `reconciliation:run --layer=provider`.
 - Outbox: `outbox:process` runs `everyMinute()->withoutOverlapping()`. Worker must be long-running; processor reclaims messages stuck in `processing` after timeout. Consumers must be idempotent (at-least-once).
+- Realtime notifications: recording a notification queues a broadcast job on the queue connection; if Reverb is down the in-app notification is still persisted and delivered by REST polling, so push failures are non-fatal. Channel auth uses the Sanctum bearer token (`/broadcasting/auth`).
 - Scheduled jobs: `reconciliation:run --layer=wallet|provider|settlement` (daily) and `reconciliation:alert` (daily). `partitions:ensure` should run before month boundary (cron daily is sufficient to pre-create future months).
 - Reconciliation: read-only; never auto-correct. Discrepancies require permissioned resolution (`reconciliation.resolve`, `ledger.correct`) with audit trail.
 - Backups: automate PostgreSQL logical/physical backups (e.g. `pg_dump` + WAL archiving). Store off-site with retention policy. Test restore quarterly on isolated env.
@@ -42,7 +44,7 @@
 - [ ] Backup current DB (and testable snapshot) before release.
 - [ ] Run `composer install --no-dev`, `npm run build`, cache config/routes/views.
 - [ ] `php artisan migrate --force` (review migrations in PR).
-- [ ] Restart queue workers and scheduler.
+- [ ] Restart queue workers and scheduler (and the Reverb server if realtime is enabled).
 - [ ] Smoke tests: auth, small transfer, deposit intent/webhook path (provider fake), withdrawal reserve/initiate. Check 429 headers, idempotency, error envelopes.
 - [ ] Verify `outbox:process`, reconciliation commands, partitions:ensure run in prod schedule.
 - [ ] Enable MFA in prod if required; confirm admin users enrolled.

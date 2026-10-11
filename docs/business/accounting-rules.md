@@ -3,7 +3,7 @@
 Digital Wallet & Financial Ledger Platform
 
 Status: Draft for approval (Phase 00)
-Companion to: `docs/business-rules.md`, `docs/transaction-state-machines.md`
+Companion to: `docs/business/business-rules.md`, `docs/business/transaction-state-machines.md`
 
 This document defines the double-entry model, the chart of accounts, the posting rules
 for each money movement, and the reconciliation relationship between the ledger and the
@@ -192,7 +192,7 @@ A posting records:
    balances, and write an outbox message.
 
 Rejection raises a domain exception mapping to a stable API error code (see
-`docs/api-error-codes.md`).
+`docs/architecture/api/error-codes.md`).
 
 Note: a single database `CHECK` constraint cannot sum across multiple posting rows. The
 balance invariant is enforced by the transactional service, with database triggers and

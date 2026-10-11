@@ -3,7 +3,7 @@
 Digital Wallet & Financial Ledger Platform
 
 Status: Draft for approval (Phase 00)
-Companion to: `docs/business-rules.md`
+Companion to: `docs/business/business-rules.md`
 
 All API errors use a single machine-readable envelope. Clients branch on `error.code`,
 never on message text.

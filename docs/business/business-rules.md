@@ -8,8 +8,9 @@ Last updated: 2026-10-09
 
 This document is the authoritative source for how money enters, leaves, and moves
 through the platform, and when a transaction is considered to have succeeded. It is
-referenced by `docs/transaction-state-machines.md`, `docs/accounting-rules.md`, and
-`docs/api-error-codes.md`.
+referenced by `docs/business/transaction-state-machines.md`,
+`docs/business/accounting-rules.md`, and
+`docs/architecture/api/error-codes.md`.
 
 ---
 
@@ -78,7 +79,7 @@ Invariants:
   transaction that posts the corresponding ledger entry. It is never updated by
   asynchronous workers.
 - `wallet_balances` positions are derived from, and must always reconcile against, the
-  ledger (see `docs/accounting-rules.md` §7).
+  ledger (see `docs/business/accounting-rules.md` §7).
 
 ## 4. Transaction outcomes
 
@@ -115,7 +116,7 @@ Scope formula: `(user_id|actor, operation, idempotency_key)`.
 - Idempotency keys expire after a configurable window (default 24h), after which reuse is
   permitted; retention must exceed provider retry windows.
 - Webhook processing is additionally idempotent on provider `event_id` via
-  `webhook_inbox` (see `docs/transaction-state-machines.md` §5).
+  `webhook_inbox` (see `docs/business/transaction-state-machines.md` §5).
 
 ## 6. Provider integration rules
 

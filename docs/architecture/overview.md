@@ -63,7 +63,7 @@ implementation is bound in `LedgerServiceProvider`.
 - Routes are versioned under `/api/v1`, one file per module under `routes/modules`.
 - Success envelope: `{ "data": ..., "meta": { "request_id": ... } }`.
 - Error envelope: `{ "error": { "code", "message", "details", "request_id" } }`.
-  Codes and HTTP mappings: `docs/api-error-codes.md`.
+  Codes and HTTP mappings: `docs/architecture/api/error-codes.md`.
 - Every request gets an `X-Request-Id` (propagated from the client if present),
   returned in the response header, and shared with the logging context.
 - Mutating endpoints require an `Idempotency-Key` header (enforced from Phase 03+).
@@ -152,7 +152,7 @@ resolved explicitly from `config/payment.php`.
   `PaymentStatus` of `processing`/`succeeded`/`failed`).
 - `PaymentProviderInterface::verifySignature()` / `parseEvent()` power the webhook
   inbox: verify → dedupe on `(provider, event_id)` → verify amount/currency →
-  post atomically (see `docs/transaction-state-machines.md`).
+  post atomically (see `docs/business/transaction-state-machines.md`).
 - Real providers (`kbzpay`, `wavemoney`, `aya`, `2c2p`) are config-driven. Their
   **payout** adapters are config-gated: they throw `ProviderUnavailableException`
   until a `payout.endpoint` is configured, because disbursement field names must

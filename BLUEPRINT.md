@@ -1,271 +1,665 @@
-# Digital Wallet & Financial Ledger Platform — Implementation Blueprint
+# Digital Wallet & Financial Ledger Platform — Complete Implementation Blueprint
 
-ဒီ project ကို Production-oriented Digital Wallet Platform အဖြစ် တည်ဆောက်မယ်။ Phase တွေကို အစဉ်လိုက်ခွဲပြီး တစ်ဆင့်ချင်း implement လုပ်နိုင်အောင် Business Rules → Database → Backend Architecture → Implementation → Testing → Deployment အထိ သတ်မှတ်ထားမယ်။
+ဒီတစ်ခေါက် Blueprint ကို Backend, Frontend, Business Logic, UI/UX Design, Database, Security, Testing နဲ့ Deployment အားလုံးပါဝင်အောင် အစအဆုံး ပြန်လည်ဖွဲ့စည်းမယ်။
 
-အဓိက ရည်ရွယ်ချက်က Wallet CRUD တွေ ရေးရုံမဟုတ်ဘဲ ငွေကြေးစနစ်တစ်ခုမှာ အရေးကြီးတဲ့ Double-Entry Ledger, Transaction Atomicity, Idempotency, Concurrency Control, Reconciliation နဲ့ PostgreSQL Partitioning တွေကို လက်တွေ့အသုံးချတတ်ဖို့ပါ။
+အရေးကြီးတဲ့ ပြင်ဆင်ချက် ၂ ခုရှိတယ်။
 
-## 1. Project scope နဲ့ architecture decisions
+1. Frontend ကို Backend ပြီးမှလုပ်မယ့် နောက်ဆုံး Phase အဖြစ် မထားတော့ဘူး။ Foundation တည်ဆောက်ချိန်ကတည်းက Frontend architecture, design system, API contract နဲ့ UI implementation ကို Backend နဲ့အပြိုင် တိုးတက်အောင်လုပ်မယ်။
 
-Project: Digital Wallet & Financial Ledger
+2. “ISO standard ဖြစ်ရမယ်” ဆိုတာကို တိတိကျကျ သတ်မှတ်မယ်။ ISO standard တစ်ခုတည်းက Backend code, business logic, database schema နဲ့ UI design အားလုံးကို တစ်ခါတည်း စံသတ်မှတ်ပေးတာ မဟုတ်ပါဘူး။ သက်ဆိုင်ရာ standards တွေကို project requirements, coding rules, testing evidence နဲ့ review process ထဲမှာ ထည့်သွင်းပြီး လိုက်နာမယ်။ ISO certification ရထားတယ်လို့တော့ သီးခြား audit မလုပ်ဘဲ မဆိုနိုင်ပါဘူး။
 
-Laravel · PostgreSQL · Redis · Vue 3 · TypeScript
+## 1. Project scope & technical decisions
 
-Architecture: Modular Monolith
+## Digital Wallet & Financial Ledger Platform
 
-အစပိုင်း Microservices မခွဲသေးဘဲ domain boundaries တွေကို ရှင်းရှင်းလင်းလင်း သတ်မှတ်မယ်။
+Single platform · Multi-currency · Customer + Admin portals
 
-Accounting: Double-Entry Ledger + Cached Balance
+Backend
 
-Ledger က financial record of truth ဖြစ်ပြီး wallet balance က မြန်မြန်ဖတ်နိုင်ဖို့ materialized operational balance ဖြစ်မယ်။ နှစ်ခုကို reconciliation လုပ်မယ်။
+Laravel + PHP
 
-Partitioning: Hybrid Strategy
+Frontend
 
-High-volume events တွေကို partition လုပ်မယ်။ Ledger ကို benchmark အရ ဆုံးဖြတ်မယ်။
+Vue 3 + TypeScript
 
-Business: Single platform, multi-currency
+Database
 
-Manual နဲ့ payment-provider deposit/withdrawal နှစ်မျိုးလုံး ပါဝင်မယ်။
+PostgreSQL
 
-### Frontend & UI (deferred)
+Cache / Queue
 
-UI ကို သီးခြား phase အနေနဲ့ ထားမယ်။ UI phase စတင်တဲ့အခါ component decisions အတွက် reference က `https://ui.shadcn.com/docs/components` ပေးထားတဲ့ flows ဖြစ်ပြီး အဲဒီ patterns အတိုင်း implement လုပ်မယ်။
+Redis
 
-* Stack — Vue 3 + TypeScript (project scope အတိုင်း)
-* Reference — `ui.shadcn.com/docs/components` component flows (shadcn/ui က React-native ဖြစ်တာမို့ Vue port ဖြစ်တဲ့ shadcn-vue နဲ့ တူညီတဲ့ component set/flows ကို သုံးမယ်)
-* Approach — Components တွေကို UI phase မှာ flow-by-flow လိုက်ဖို့ပြီး project conventions (PHP API, RBAC permissions, audit) နဲ့ တွဲဖော်ပြမယ်
-* Note — ဒီ decision က နောက်ပိုင်း UI milestone တိုင်းမှာ developer/agent တွေ ဦးစွာ reference လုပ်ရမယ့် စာချုပ်ဖြစ်တယ်
+Realtime
 
-### MVP ထဲမှာ ပါဝင်မယ့် features
+Laravel Reverb + Laravel Echo (WebSockets)
 
-* User authentication, roles, permissions
+Frontend state
+
+Pinia + Vue Router
+
+UI
+
+Tailwind CSS + shadcn-vue patterns
+
+Architecture decisions
+
+* Modular Monolith — အစပိုင်းမှာ Microservices မခွဲသေးပါ။
+
+* Double-Entry Ledger — financial record of truth။
+
+* Cached Wallet Balance — မြန်မြန်ဖတ်နိုင်ဖို့၊ reconciliation နဲ့စစ်ဆေးမယ်။
+
+* Hybrid Partitioning — event tables ကို partition လုပ်မယ်၊ ledger partitioning ကို benchmark ပြီးမှဆုံးဖြတ်မယ်။
+
+* API-first — Backend/Frontend ကို OpenAPI contract အပေါ် အခြေခံပြီး parallel implement လုပ်မယ်။
+
+### MVP business scope
+
+* User authentication, roles and permissions
 
 * Multi-currency wallets
 
 * Internal wallet-to-wallet transfers
 
-* Double-entry ledger နဲ့ transaction history
+* Manual and payment-provider deposits
 
-* Manual / provider deposits
-
-* Manual / provider withdrawals
+* Manual and payment-provider withdrawals
 
 * Withdrawal holds / reserved balance
 
-* Idempotency နဲ့ duplicate request protection
+* Double-entry ledger and immutable postings
 
-* Provider webhook verification
+* Idempotency and webhook deduplication
 
-* Admin approval နဲ့ audit trail
+* Customer transaction history and statements
 
-* Transactional outbox, queues, notifications
+* Admin dashboard and transaction review
 
-* Reconciliation reports
+* Audit trail, transactional outbox and notifications
 
-* Partitioned payment/audit events
+* Reconciliation, event partitioning and operational monitoring
 
-* Automated tests, monitoring, backup/restore
-
-အစပိုင်းမှာ FX exchange, lending, crypto, card acquiring နဲ့ cross-border settlement တွေကို MVP scope ထဲ မထည့်သေးဘူး။ Multi-currency wallet ရှိတာနဲ့ currency exchange ကို support လုပ်ပြီးသားလို့ မယူဆရပါဘူး။
+MVP အတွင်း FX exchange, lending, crypto, card acquiring နဲ့ cross-border settlement ကို မထည့်သေးပါ။ Multi-currency wallet support ရှိခြင်းက currency conversion support ရှိခြင်းနဲ့ မတူပါဘူး။
 
 
-## 2. Phase roadmap
+## 2. ISO standards နဲ့ project compliance framework
+
+ဒီ project အတွက် ISO standards ကို အောက်ပါအတိုင်း role ခွဲသုံးမယ်။
+
+| Standard                | Project ထဲမှာ အသုံးချမယ့်အပိုင်း                                                                                                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ISO/IEC/IEEE 12207:2026 | Software lifecycle, development, operation, maintenance process<br>![](https://www.google.com/s2/favicons?domain=https://www.iso.org\&sz=32)<br>Software life cycle processes                |
+| ISO/IEC/IEEE 29148:2018 | Requirements engineering, testable requirements, traceability<br>![](https://www.google.com/s2/favicons?domain=https://www.iso.org\&sz=32)<br>Requirements engineering                       |
+| ISO/IEC 25010:2023      | Software quality model, maintainability, reliability, security, performance evaluation<br>![](https://www.google.com/s2/favicons?domain=https://www.iso.org\&sz=32)<br>Product quality model |
+| ISO/IEC 27001:2022      | Information security risk management and ISMS requirements<br>![](https://www.google.com/s2/favicons?domain=https://www.iso.org\&sz=32)<br>Information security management systems           |
+| ISO 9241-210:2019       | Human-centred UI/UX design and usability evaluation<br>![](https://www.google.com/s2/favicons?domain=https://committee.iso.org\&sz=32)<br>ISO                                                |
+| ISO/IEC 40500:2025      | Web accessibility through WCAG 2.2 criteria<br>![](https://www.google.com/s2/favicons?domain=https://www.iso.org\&sz=32)<br>ISO                                                              |
+
+ဒီ standards တွေက မတူညီတဲ့ရည်ရွယ်ချက်တွေရှိတယ်။ ဥပမာ ISO/IEC 27001 က coding style guide မဟုတ်ဘဲ information security management system အတွက် standard ဖြစ်တယ်။ ISO 9241-210 က user interface ကို လှပအောင်လုပ်ဖို့တစ်ခုတည်း မဟုတ်ဘဲ user needs, usability နဲ့ human-centred design process ကို အလေးထားတယ်။
+
+### Project compliance model
+
+ကျွန်တော်တို့ လက်တွေ့လုပ်ဆောင်မယ့်ပုံစံက —
+
+```
+ISO / Industry Standards
+          │
+          ▼
+Project Policies & Quality Requirements
+          │
+          ▼
+Architecture / Business / UI Specifications
+          │
+          ▼
+Implementation Rules + Automated Tests
+          │
+          ▼
+Code Review + QA Evidence
+          │
+          ▼
+Release Approval + Audit Records
+```
+
+Project ထဲမှာ `compliance/` directory ထားပြီး standard တစ်ခုချင်းစီနဲ့ ချိတ်ဆက်ထားတဲ့ requirement, implementation evidence, test results နဲ့ review records တွေကို ထိန်းသိမ်းမယ်။
+
+ဥပမာ — “Transfer တစ်ခုဟာ duplicate request ကြောင့် နှစ်ကြိမ် credit မဖြစ်ရ” ဆိုတဲ့ requirement အတွက် business rule, API behavior, database constraint, automated test နဲ့ code review evidence ကို တစ်နေရာနဲ့တစ်နေရာ ချိတ်ဆက်ထားမယ်။
+
+## 3. Complete phase roadmap — Backend + Frontend + UI/UX
+
+Frontend ကို phase တစ်ခုတည်းထဲ ထည့်မထားဘဲ အောက်ပါ roadmap အတိုင်း Backend နဲ့ အပြိုင် implement လုပ်မယ်။
 
 ### 00
 
-Requirements & Financial Rules
+Requirements & Compliance
 
-Business rules, state machines, accounting policy
+Business requirements, ISO mapping, acceptance criteria
 
 ### 01
 
-Project Foundation
+System Architecture & API Contract
 
-Laravel setup, modules, authentication, CI
+Domain boundaries, OpenAPI, database and integration contracts
 
 ### 02
 
-Database & Ledger Core
+Backend & Frontend Foundations
 
-Currencies, wallets, accounts, journals, postings
+Laravel modules, Vue app shell, CI, linting, test setup
 
 ### 03
 
-Wallet Balance & Internal Transfer
+UI/UX Research & Design System
 
-Atomic transfer, locking, idempotency
+User journeys, wireframes, tokens, reusable components, accessibility
 
 ### 04
 
-Deposits
+Identity, Authentication & RBAC
 
-Manual approval, provider payment, webhook inbox
+Login, session/token strategy, route guards, permission-aware UI
 
 ### 05
 
-Withdrawals
+Database & Ledger Core
 
-Holds, payout state machine, unknown outcomes
+Currencies, wallets, journal entries, postings, ledger invariants
 
 ### 06
 
-Transaction History & Admin
+Wallet Dashboard & Balance UI
 
-Statements, permissions, audit trails
+Wallet list, currency selection, balance and empty/error states
 
 ### 07
 
-Events, Outbox & Partitioning
+Internal Transfer
 
-Async processing, partition automation
+Atomic backend transfer, confirmation UI, receipts, transaction status
 
 ### 08
 
-Reconciliation & Resilience
+Deposit
 
-Ledger/balance/provider matching, recovery
+Manual/provider deposits, payment status, webhook processing
 
 ### 09
 
-Security & Performance
+Withdrawal
 
-Threat checks, concurrency tests, benchmarks
+Available balance, holds, payout lifecycle and unknown outcomes
 
 ### 10
 
+History, Statements & Admin Portal
+
+Search, filters, pagination, approvals, audit and exports
+
+### 11
+
+Outbox, Events & Partitioning
+
+Reliable delivery, event storage, partition automation
+
+### 12
+
+Reconciliation & Recovery
+
+Balance/provider matching, discrepancies and controlled corrections
+
+### 13
+
+Security, Accessibility & Quality Assurance
+
+Threat tests, WCAG checks, end-to-end and performance tests
+
+### 14
+
 Deployment & Operations
 
-Production rollout, monitoring, backup/restore
+Staging, production, monitoring, backup and incident response
 
-## Phase 00 — Requirements & Financial Rules
+အရေးကြီးတဲ့ principle က Phase တစ်ခုချင်းစီမှာ Backend API, Frontend screens, tests နဲ့ acceptance criteria တွေကို တစ်တွဲတည်း သတ်မှတ်ထားဖို့ပါ။ Phase 03 မှာ design system ကို ကြိုတင်ပြင်ဆင်ထားပေမယ့် actual screens တွေကို feature phase တွေမှာ တဖြည်းဖြည်း implement လုပ်မယ်။
 
-ရည်ရွယ်ချက်: Code မရေးခင် ငွေဘယ်လိုဝင်၊ ဘယ်လိုထွက်၊ ဘယ်အချိန်မှာ transaction အောင်မြင်တယ်လို့ သတ်မှတ်မလဲ ဆိုတာကို တိတိကျကျ သတ်မှတ်မယ်။
+# Part A — Requirements & architecture
 
-### Implementation tasks
+## Phase 00 — Requirements, business rules & compliance
 
-1. User roles သတ်မှတ်ရန် — `customer`, `admin`, `finance_operator`, `auditor`
+ရည်ရွယ်ချက်: Business, Backend, Frontend နဲ့ UI/UX တို့အတွက် shared source of truth တစ်ခု တည်ဆောက်ရန်။
 
-2. Wallet status — `active`, `frozen`, `closed`
+### Backend/business tasks
 
-3. Deposit, withdrawal, transfer state machine တွေ သတ်မှတ်ရန်
+* User roles — `customer`, `admin`, `finance_operator`, `auditor`
 
-4. Currency minor units သတ်မှတ်ရန် — ဥပမာ USD 2 decimal၊ MMK 0 decimal
+* Wallet, transfer, deposit, withdrawal state machines
 
-5. Ledger account chart သတ်မှတ်ရန်
+* Multi-currency and minor-unit rules
 
-6. Provider failure, timeout, duplicate webhook, refund/reversal rules သတ်မှတ်ရန်
+* Double-entry accounting policies
 
-7. API error codes, idempotency scope, authorization rules သတ်မှတ်ရန်
+* Idempotency, concurrency, reversal and reconciliation policies
 
-### Core financial invariants
+* Provider timeout, retry, duplicate webhook behavior
 
-* Currency တစ်ခုချင်းစီအလိုက် journal entry တစ်ခုစီမှာ total debit = total credit ဖြစ်ရမယ်။
+* API error codes, pagination and filtering conventions
 
-* Posted ledger entries တွေကို တိုက်ရိုက် update/delete မလုပ်ရ။
+* Security and audit requirements
 
-* မှားယွင်းတဲ့ posting ကို reversal entry အသစ်နဲ့ ပြင်ရမယ်။
+### Frontend/UI tasks
 
-* Same idempotency key + same request ကို ထပ်ပို့ရင် duplicate money movement မဖြစ်ရ။
+* Customer portal နဲ့ Admin portal ရဲ့ responsibilities သတ်မှတ်ရန်
 
-* Same key + different request payload ဖြစ်ရင် conflict ပြန်ပေးရမယ်။
+* User journeys — login, wallet view, transfer, deposit, withdrawal, history
 
-* Wallet balance နဲ့ reserved balance ကို ledger/active holds နဲ့ reconciliation လုပ်နိုင်ရမယ်။
+* Admin journeys — review, approve, reject, freeze, investigate
 
-* Provider timeout ဖြစ်တာနဲ့ payment failed လို့ မသတ်မှတ်ရ။ အခြေအနေမသေချာသေးရင် `reconciling` အဖြစ်ထားရမယ်။
+* Responsive layout requirements
 
-Deliverables: `docs/business-rules.md`, `docs/transaction-state-machines.md`, `docs/accounting-rules.md`, `docs/api-error-codes.md`
+* Accessibility and usability requirements
 
-Done when: Transfer, deposit, withdrawal ဖြစ်စဉ်တိုင်းအတွက် state transition နဲ့ accounting entries ကို example နဲ့ ရှင်းပြနိုင်ရမယ်။
+* Loading, empty, success, validation, error, pending, timeout states
 
-## Phase 01 — Project Foundation
+* Burmese/English labels လိုအပ်မလား၊ currency/number/date format policy
 
-ရည်ရွယ်ချက်: Feature တွေကို သီးခြားစီ တိုးချဲ့၊ စမ်းသပ်၊ maintain လုပ်နိုင်တဲ့ foundation တည်ဆောက်ရန်။
+### Deliverables
+
+```
+docs/
+├── requirements/
+│   ├── business-requirements.md
+│   ├── functional-requirements.md
+│   ├── non-functional-requirements.md
+│   └── acceptance-criteria.md
+├── business/
+│   ├── accounting-rules.md
+│   ├── transaction-state-machines.md
+│   └── permissions-matrix.md
+├── architecture/
+│   ├── system-context.md
+│   └── architecture-decisions/
+└── compliance/
+    ├── standards-mapping.md
+    ├── requirements-traceability.md
+    └── risk-register.md
+```
+
+Acceptance criteria: Feature တစ်ခုချင်းစီမှာ requirement ID, business rule, permission, expected API behavior, UI state နဲ့ test case တွေ ရှိရမယ်။
+
+## Phase 01 — System architecture & API contract
+
+ဒီ Phase မှာ Backend/Frontend ကို သီးခြားစီ စမ်းသပ်နိုင်ဖို့ contract-first approach သုံးမယ်။
+
+### System architecture
+
+Vue 3 Customer / Admin Portals
+
+Pages · Components · Pinia · Router
+
+API Contract
+
+OpenAPI · Validation schema · Error format · Pagination
+
+Laravel Modular Monolith
+
+Identity · Wallets · Ledger · Transfers · Deposits · Withdrawals
+
+PostgreSQL
+
+Redis / Queue
+
+Laravel Reverb (WebSockets)
+
+Payment Providers
+
+### API contract rules
+
+* API versioning — `/api/v1/...`
+
+* JSON response format တစ်သမတ်တည်း
+
+* Error codes နဲ့ validation errors သတ်မှတ်ထားခြင်း
+
+* Cursor pagination, filter/sort allowlist
+
+* Amount ကို minor units နဲ့ သယ်ဆောင်ခြင်း
+
+* Currency code ကို အမြဲ explicit ထည့်ပေးခြင်း
+
+* Money movement requests အတွက် idempotency key
+
+* OpenAPI schema ကို API tests နဲ့ စစ်ဆေးခြင်း
+
+ဥပမာ response contract —
+
+JSON
+
+```
+{
+  "data": {
+    "id": "transfer-id",
+    "amount_minor": 10000,
+    "currency": "MMK",
+    "status": "succeeded"
+  },
+  "meta": {
+    "request_id": "request-id"
+  }
+}
+```
+
+ဒါက illustrative example ဖြစ်ပြီး production schema မှာ ID format, timestamps, error contract နဲ့ money representation ကို သီးခြားသတ်မှတ်မယ်။
+
+### Deliverables
+
+* System context diagram
+
+* Domain model and ERD
+
+* API OpenAPI specification
+
+* ADRs (Architecture Decision Records)
+
+* API error and pagination standards
+
+* Backend/Frontend integration test plan
+
+Acceptance criteria: Frontend team က API implementation မပြီးသေးခင် OpenAPI contract နဲ့ mock responses ကို အသုံးပြုပြီး screens တည်ဆောက်နိုင်ရမယ်။
+
+# Part B — Backend foundation
+
+## Phase 02 — Backend & Frontend foundations
+
+### Backend foundation
+
+```
+app/Modules/
+├── Identity/
+├── Wallets/
+├── Ledger/
+├── Transfers/
+├── Deposits/
+├── Withdrawals/
+├── PaymentProviders/
+├── Reconciliation/
+├── Audit/
+└── Shared/
+```
+
+Module တစ်ခုချင်းစီမှာ လိုအပ်သလို `Controllers`, `Requests`, `DTOs`, `Services`, `Repositories/Contracts`, `Repositories/Eloquent`, `Models`, `Enums`, `Policies`, `Tests` ကို ထားမယ်။
+
+Backend coding rules:
+
+* Controller က HTTP concerns ကိုသာ ကိုင်တွယ်မယ်။
+
+* FormRequest က request validation လုပ်မယ်။
+
+* DTO က typed input/output data ကို ကိုယ်စားပြုမယ်။
+
+* Service/Domain layer က business rules ကို enforce လုပ်မယ်။
+
+* Repository က လိုအပ်တဲ့ data access abstraction ကိုပဲ ကိုင်တွယ်မယ်။
+
+* Interface bindings ကို service provider မှာ register လုပ်မယ်။
+
+* Financial transaction boundary ကို service layer မှာ ရှင်းရှင်းလင်းလင်း သတ်မှတ်မယ်။
+
+* Domain logic ကို Eloquent model callbacks တွေထဲမှာ ပျံ့နှံ့မသွားစေရ။
+
+### Frontend foundation
+
+```
+src/
+├── app/
+│   ├── router/
+│   ├── layouts/
+│   └── providers/
+├── components/
+│   ├── ui/
+│   └── shared/
+├── features/
+│   ├── auth/
+│   ├── wallets/
+│   ├── transfers/
+│   ├── deposits/
+│   ├── withdrawals/
+│   ├── transactions/
+│   └── admin/
+├── services/
+│   ├── api/
+│   └── generated/
+├── stores/
+├── types/
+├── utils/
+└── tests/
+```
+
+Frontend coding rules:
+
+* Vue 3 Composition API + TypeScript strict mode
+
+* `<script setup lang="ts">` convention
+
+* Pinia ကို cross-page/shared state အတွက်သာ သင့်တော်သလိုသုံးမယ်။
+
+* API calls ကို component အတွင်း တိုက်ရိုက်မရေးဘဲ feature service/query layer ကတစ်ဆင့် ခေါ်မယ်။
+
+* Backend validation rules ကို Frontend က ထပ်တူရေးထားရုံနဲ့ security boundary ဖြစ်တယ်လို့ မယူဆရ။
+
+* Route guards က UX အတွက်ဖြစ်ပြီး authorization ကို Backend မှာ ထပ်စစ်ရမယ်။
+
+* Money values ကို JavaScript floating-point arithmetic နဲ့ မတွက်ရ။ Integer minor units သို့မဟုတ် exact decimal strategy သုံးမယ်။
+
+* Server state နဲ့ UI-only state ကို သီးခြားစီ ခွဲထားမယ်။
+
+### CI quality gates
+
+* PHP formatting, static analysis, tests
+
+* TypeScript typecheck, ESLint, formatting
+
+* Vue component/unit tests
+
+* OpenAPI schema validation
+
+* Dependency/security scanning
+
+* Migration and seed verification
+
+* Build succeeds before merge
+
+Acceptance criteria: Backend/Frontend နှစ်ဖက်လုံး local development, lint, typecheck/test, CI workflow အဆင်သင့်ဖြစ်ရမယ်။
+
+# Part C — Frontend design system & UI/UX
+
+## Phase 03 — UI/UX research, design system & component standards
+
+ဒီ Phase ကို Frontend implementation မစခင် လုပ်မယ်။ Design system မရှိဘဲ page တစ်ခုချင်းစီမှာ ကိုယ်ပိုင် button, modal, table, form စတာတွေ ရေးသွားရင် consistency မရှိတော့ဘူး။
+
+### 3.1 UI reference and component policy
+
+UI component reference အနေနဲ့ shadcn design principles နဲ့ component flows ကို သုံးမယ်။ Vue implementation အတွက် React component code ကို တိုက်ရိုက်ကူးမသုံးဘဲ shadcn-vue-compatible Vue components ကို သုံးမယ်။
+
+Reference: [shadcn-vue documentation](https://www.shadcn-vue.com/) · [shadcn/ui component reference](https://ui.shadcn.com/docs/components)
+
+Tailwind CSS နဲ့ component primitives တွေကို project ရဲ့ design tokens အပေါ် အခြေခံပြီး တစ်သမတ်တည်း သုံးမယ်။
+
+### 3.2 Design system layers
+
+#### 1
+
+Design tokens
+
+Colors, typography, spacing, radius, shadows, focus rings, breakpoints
+
+#### 2
+
+Primitive components
+
+Button, Input, Label, Select, Checkbox, Dialog, Popover, Tooltip
+
+#### 3
+
+Composite components
+
+MoneyInput, CurrencySelect, StatusBadge, ConfirmTransferDialog, DataTable
+
+#### 4
+
+Feature components
+
+WalletBalanceCard, TransferForm, DepositStatusPanel, WithdrawalReviewPanel
+
+#### 5
+
+Pages and layouts
+
+Dashboard, Wallets, Transfer, History, Admin Operations
+
+### 3.3 Mandatory reusable UI components
+
+| Category   | Components                                                                     |
+| ---------- | ------------------------------------------------------------------------------ |
+| Form       | `FormField`, `MoneyInput`, `CurrencySelect`, `DateRangePicker`, `SearchInput`  |
+| Feedback   | `Alert`, `Toast`, `InlineError`, `Skeleton`, `EmptyState`, `RetryPanel`        |
+| Navigation | `AppSidebar`, `Topbar`, `Breadcrumbs`, `MobileNav`                             |
+| Data       | `DataTable`, `Pagination`, `FilterBar`, `AmountDisplay`, `StatusBadge`         |
+| Dialog     | `ConfirmDialog`, `TransferReviewDialog`, `ApproveRequestDialog`                |
+| Financial  | `WalletBalanceCard`, `TransactionRow`, `TransactionTimeline`, `ReceiptPanel`   |
+| Admin      | `PermissionGate`, `AuditTimeline`, `ReviewPanel`, `ReconciliationMismatchCard` |
+
+Financial UI component တွေက formatting ပဲ လုပ်ရမယ်။ ဥပမာ `AmountDisplay` က money value ကို display လုပ်ပေးပေမယ့် transfer balance ကို တွက်ချက်ဆုံးဖြတ်တာမျိုး မလုပ်ရဘူး။
+
+### 3.4 UI design rules
+
+* Semantic HTML elements နဲ့ keyboard navigation ကို မှန်ကန်စွာ သုံးမယ်။
+
+* Color တစ်ခုတည်းနဲ့ success/failure/pending ကို မဖော်ပြရ။ Text/icon ပါရမယ်။
+
+* Focus state, validation message နဲ့ error recovery action တွေ ရှိရမယ်။
+
+* Desktop table တွေကို mobile မှာ အလျားလိုက်မလွန်ကဲစေဘဲ responsive table/card pattern သတ်မှတ်မယ်။
+
+* Form labels, descriptions, required state နဲ့ accessible error messages ထည့်မယ်။
+
+* Confirm action များမှာ amount, currency, destination ကို ပြန်လည်စစ်ဆေးနိုင်အောင် ပြမယ်။
+
+* Dark/light theme ထောက်ပံ့မယ်ဆိုရင် contrast နဲ့ focus states ကို theme နှစ်မျိုးလုံးမှာ စမ်းသပ်မယ်။
+
+* UI states အားလုံးကို သတ်မှတ်မယ် — loading, empty, error, disabled, pending, success, timeout, retry.
+
+### 3.5 Accessibility and usability
+
+ISO 9241-210 ရဲ့ human-centred design approach နဲ့ ISO/IEC 40500:2025 (WCAG 2.2) criteria ကို လမ်းညွှန်အဖြစ်သုံးမယ်။
+
+![](https://www.google.com/s2/favicons?domain=https://committee.iso.org\&sz=32)
+
+ISO
+
++1
+
+လိုအပ်တဲ့ checks:
+
+* Keyboard-only navigation
+
+* Visible focus
+
+* Accessible form labels
+
+* Contrast checks
+
+* Dialog focus management
+
+* Screen-reader accessible status updates
+
+* Error messages that explain how to recover
+
+* Responsive zoom/reflow checks
+
+Deliverables: Design tokens, component inventory, component usage guide, page wireframes, UI state matrix, accessibility checklist.
+
+Acceptance criteria: Feature page အသစ်တစ်ခု တည်ဆောက်တဲ့အခါ custom primitive အသစ်တွေ မလိုအပ်ဘဲ shared components တွေကို ပြန်အသုံးပြုနိုင်ရမယ်။ New component တစ်ခုထည့်ရင် usage guide နဲ့ tests ပါရမယ်။
+
+
+# Part D — Authentication, database & financial business logic
+
+## Phase 04 — Identity, authentication & RBAC
 
 ### Backend
 
-* Laravel application, PostgreSQL connection, Redis configuration
+* User authentication and session/token strategy
 
-* Authentication, role/permission management
+* Password reset and email verification if required
 
-* Request validation, DTOs, API Resources
+* Roles, permissions and policies
 
-* Service container interface bindings
+* Admin MFA
 
-* Logging, exception handling, request correlation IDs
+* Login rate limiting
 
-* Environment configuration, secrets management
+* Session revocation and logout
 
-* Pest testing, CI pipeline, database migrations
+* Audit logging for sensitive administrative actions
 
-### Suggested module structure
+### Frontend
 
-```
-app/
-├── Modules/
-│   ├── Identity/
-│   ├── Wallets/
-│   ├── Ledger/
-│   ├── Transfers/
-│   ├── Deposits/
-│   ├── Withdrawals/
-│   ├── PaymentProviders/
-│   ├── Reconciliation/
-│   ├── Audit/
-│   └── Shared/
-└── Providers/
+* Login, logout, password reset pages
 
-routes/
-├── api.php
-└── modules/
-    ├── identity.php
-    ├── wallets.php
-    ├── transfers.php
-    ├── deposits.php
-    └── withdrawals.php
-```
+* Protected routes
 
-Module တစ်ခုစီမှာ အောက်ပါ structure ကို လိုအပ်သလို သုံးမယ်။
+* Permission-aware navigation and actions
 
-```
-Transfers/
-├── Controllers/
-├── Requests/
-├── DTOs/
-├── Services/
-├── Repositories/
-│   ├── Contracts/
-│   └── Eloquent/
-├── Models/
-├── Enums/
-├── Policies/
-└── Tests/
-```
+* Session expiry handling
 
-Controller → FormRequest → DTO → Service → Repository → Model ဆိုတဲ့ flow ကို သုံးနိုင်ပေမယ့် financial rules တွေကို Controller/Repository ထဲမှာ မပျံ့နှံ့စေရပါဘူး။ Domain rules တွေကို Service/Domain layer မှာ ထားရမယ်။
+* Unauthorized and forbidden pages
 
-Deliverables: Running application, auth, module skeleton, CI, test conventions, error response format.
+* Form validation and server error display
 
-Done when: Clean environment တစ်ခုမှာ migration, seed, test, application boot တို့ကို အောင်မြင်စွာ လုပ်နိုင်ရမယ်။
+* Accessible password visibility controls
 
-## Phase 02 — Database & Ledger Core
+### Business rules
 
-ဒီ Phase က project ရဲ့ အရေးအကြီးဆုံး foundation ဖြစ်တယ်။
+* Frontend မှာ button ကို hide လုပ်ထားတာက authorization မဟုတ်ဘူး။
+
+* Backend က resource ownership နဲ့ permission ကို request တစ်ခုချင်းစီမှာ စစ်ရမယ်။
+
+* Admin က wallet freeze လုပ်နိုင်ပေမယ့် posted journal ကို direct edit/delete မလုပ်နိုင်ရ။
+
+* Session expired ဖြစ်ရင် unsaved financial form data ကို ဘယ်လိုကိုင်တွယ်မလဲ သတ်မှတ်ရမယ်။
+
+Acceptance criteria: Customer က အခြား customer ရဲ့ wallet ကို ID ပြောင်းပြီး ဝင်ကြည့်မရရ။ UI route ကို တိုက်ရိုက်ခေါ်တာနဲ့ Backend API က unauthorized access ကို reject လုပ်ရမယ်။
+
+## Phase 05 — Database & Ledger Core
 
 ### Database implementation order
 
-| Order | Tables                       | Purpose                             |
-| ----- | ---------------------------- | ----------------------------------- |
-| 1     | `users`, roles/permissions   | Identity and authorization          |
-| 2     | `currencies`                 | Currency metadata                   |
-| 3     | `wallets`, `wallet_balances` | Wallet and cached balance           |
-| 4     | `ledger_accounts`            | Chart of accounts                   |
-| 5     | `journal_entries`            | Financial transaction headers       |
-| 6     | `ledger_postings`            | Debit/credit lines                  |
-| 7     | `idempotency_keys`           | Duplicate request prevention        |
-| 8     | `audit_events`               | Security and administrative history |
+| Order | Tables                       | Purpose                         |
+| ----- | ---------------------------- | ------------------------------- |
+| 1     | `users`, roles, permissions  | Identity and access             |
+| 2     | `currencies`                 | Currency metadata               |
+| 3     | `wallets`, `wallet_balances` | Wallet and cached balances      |
+| 4     | `ledger_accounts`            | Chart of accounts               |
+| 5     | `journal_entries`            | Financial transaction headers   |
+| 6     | `ledger_postings`            | Debit/credit entries            |
+| 7     | `idempotency_keys`           | Duplicate request prevention    |
+| 8     | `audit_events`               | Administrative/security history |
 
-### Ledger service contract
+### Ledger business rules
 
-`LedgerPostingService` ကို အခြား financial modules တွေ အသုံးပြုမယ့် central boundary အဖြစ် သတ်မှတ်မယ်။
+* Currency တစ်ခုချင်းစီအလိုက် journal တစ်ခုစီမှာ total debit = total credit ဖြစ်ရမယ်။
+
+* Amount ကို integer minor units (`bigint`) နဲ့ သိမ်းမယ်။
+
+* Journal နဲ့ account currency မကိုက်ရင် reject လုပ်မယ်။
+
+* Posted journals နဲ့ postings တွေကို immutable ဖြစ်အောင် ကာကွယ်မယ်။
+
+* Correction ကို reversal entry အသစ်နဲ့ လုပ်မယ်။
+
+* Duplicate source transaction အတွက် duplicate journal မဖြစ်ရ။
+
+* Ledger posting, cached balance update နဲ့ outbox insertion ကို သက်ဆိုင်ရာ financial transaction တစ်ခုအတွင်း atomic ဖြစ်စေရမယ်။
+
+### Critical service
 
 PHP
 
@@ -278,558 +672,1037 @@ interface LedgerPostingServiceInterface
 }
 ```
 
-ဒီ signature က design example ဖြစ်ပြီး DTO/result class တွေကို project ထဲမှာ သီးခြား define လုပ်ရမယ်။
+ဒီ interface က architectural example ဖြစ်တယ်။ DTO နဲ့ result class တွေကို project ထဲမှာ သီးခြား define လုပ်ရမယ်။
 
-Service က အောက်ပါအချက်တွေကို စစ်ဆေးရမယ်။
+### Schema design review requirements
 
-1. Journal entry ရဲ့ account တွေဟာ active ဖြစ်ရမယ်။
+* `wallets (id, currency_code)` ကို composite unique key သတ်မှတ်ပြီး transfer/deposit/withdrawal မှာ wallet-currency consistency ကို composite foreign key နဲ့ ကာကွယ်ရန်။
 
-2. Journal currency နဲ့ posting account currencies ကိုက်ညီရမယ်။
+* `ledger_accounts` မှာ currency strategy ကို explicit သတ်မှတ်ရန်။
 
-3. Debit/credit amount တွေ positive ဖြစ်ရမယ်။
+* Journal posting totals ကို application logic/controlled database procedure နဲ့ validate လုပ်ရန်။
 
-4. Total debit = total credit ဖြစ်ရမယ်။
+* Posted data ကိုသာမန် application DB role က update/delete မလုပ်နိုင်အောင် permission/triggers စဉ်းစားရန်။
 
-5. Source transaction အတွက် duplicate journal မဖြစ်ရ။
+* Global idempotency key uniqueness ကို `scope + key` အလိုက် သတ်မှတ်ရန်။
 
-6. Posted entry ကို immutable ဖြစ်အောင် ကာကွယ်ရမယ်။
+* Active holds နဲ့ `reserved_balance` ကို atomic transaction အတွင်း synchronize လုပ်ရန်။
 
-အရေးကြီးတာက database `CHECK` constraint တစ်ခုတည်းနဲ့ multiple posting rows ရဲ့ debit/credit total ကို မစစ်နိုင်တာပါ။ Transaction boundary, locking, controlled posting logic နဲ့ database permissions/triggers ကို ပေါင်းစပ်သုံးရမယ်။
+### Frontend work in this phase
 
-### ဥပမာ — Customer A က Customer B ကို 10,000 MMK လွှဲခြင်း
+Ledger table ကို customer UI မှာ တိုက်ရိုက်ဖော်ပြဖို့ မလိုအပ်ပါဘူး။ ဒါပေမဲ့ Backend က ထုတ်ပေးမယ့် financial states တွေအပေါ် အခြေခံပြီး frontend types, API client နဲ့ shared amount formatting utilities ကို တည်ဆောက်မယ်။
 
-| Ledger account              | Debit  | Credit |
-| --------------------------- | ------ | ------ |
-| Customer A wallet liability | 10,000 | —      |
-| Customer B wallet liability | —      | 10,000 |
-| Total                       | 10,000 | 10,000 |
+Acceptance criteria: Balanced journal ကို post လုပ်နိုင်ပြီး unbalanced journal, wrong currency, duplicate source posting တွေကို reject လုပ်နိုင်ရမယ်။
 
-Wallet တစ်ခုစီအတွက် ledger account ကို သီးခြားထားမယ်ဆိုရင် ဒီဥပမာလို စာရင်းသွင်းနိုင်တယ်။ Fee ပါလာရင် fee အတွက် additional postings တွေ ထည့်ရမယ်။
+## Phase 06 — Wallet dashboard & balance UI
 
-Deliverables: Migrations, account seeding, `LedgerPostingService`, immutable posting controls, ledger unit tests.
+ဒီ Phase က Frontend implementation ကို တကယ်စတင်ပြီး customer-facing pages တွေ တည်ဆောက်မယ့် Phase ဖြစ်တယ်။
 
-Done when: Balanced journal ကို post လုပ်နိုင်ပြီး unbalanced journal, wrong-currency posting, duplicate source posting တွေကို reject လုပ်နိုင်ရမယ်။
+### Backend tasks
 
+* Wallet list API
 
-## Phase 03 — Wallet Balance & Internal Transfer
+* Wallet balance API
 
-ရည်ရွယ်ချက်: User နှစ်ယောက်ကြား wallet transfer ကို concurrency ရှိနေချိန်မှာတောင် မှန်ကန်စွာ ဆောင်ရွက်နိုင်ရန်။
+* Currency metadata API
 
-### Transfer flow
+* Wallet status and permissions
 
-1. Validate request
+* Consistent balance representation
 
-Authentication · ownership · amount · currency · idempotency
+### Frontend pages
 
-2. Begin database transaction
+* Customer dashboard
 
-Lock wallet rows in deterministic ID order
+* Wallet list
 
-3. Check available balance
+* Wallet details
 
-posted_balance − reserved_balance ≥ amount + fee
+* Currency selector
 
-4. Post balanced ledger journal
+* Available, posted and reserved balance display
 
-Create transfer, journal and postings
+* Recent transaction preview
 
-5. Update balances + outbox
+* Empty-wallet and frozen-wallet states
 
-Commit everything atomically
+### UI rules
 
-6. After commit
+Balance display မှာ အောက်ပါကွဲပြားချက်တွေကို ရှင်းရှင်းလင်းလင်း ဖော်ပြမယ်။
 
-Queue notifications and publish events
+* Posted balance: Ledger ထဲက posted transactions တွေအပေါ် အခြေခံထားတဲ့ balance
 
-### Implementation tasks
+* Reserved balance: Pending withdrawal/hold အတွက် ခွဲထားတဲ့ amount
 
-* `TransferService`
+* Available balance: `posted_balance - reserved_balance`
 
-* `WalletBalanceService`
+Customer တစ်ယောက်မှာ currency အများကြီးရှိနိုင်တာကြောင့် MMK, USD စတဲ့ balances တွေကို စုစုပေါင်း amount တစ်ခုတည်းအဖြစ် currency conversion မရှိဘဲ မပြရ။
 
-* Wallet ownership policies
+### Tests
 
-* Idempotency middleware/service
+* Wallet owner only access
 
-* Wallet row locking using `SELECT ... FOR UPDATE`
+* Currency display and rounding
 
-* Deterministic lock ordering to reduce deadlocks
+* Frozen/closed wallet behavior
 
-* Transfer history indexes
+* Loading, empty and error states
 
-* Retry handling for safe transient database errors
+* Responsive dashboard
 
-သတိပြုရန်: Balance update နဲ့ ledger posting ကို transaction တစ်ခုတည်းထဲမှာ လုပ်ရမယ်။ Notification ပို့တာကတော့ financial database transaction အတွင်းမှာ မလုပ်သင့်ဘူး။
+* Balance refresh and stale-data behavior
 
-Deliverables: Transfer API, balance API, transaction history API, concurrent-transfer tests.
+Acceptance criteria: UI မှာ ပြထားတဲ့ balance က Backend ရဲ့ authoritative response နဲ့ ကိုက်ညီရမယ်။ Frontend က balance ကို ကိုယ်တိုင်ဆုံးဖြတ်ပြီး financial transaction ခွင့်ပြု/ငြင်းပယ်တာ မလုပ်ရ။
 
-Done when: တစ်ချိန်တည်းမှာ request အများကြီးလာလည်း available balance ထက်ပိုပြီး လွှဲမရ၊ retry လုပ်လည်း duplicate transfer မဖြစ်ရ။
+## Phase 07 — Internal wallet transfer
 
-## Phase 04 — Deposits
+### Backend flow
 
-ရည်ရွယ်ချက်: Manual deposit နဲ့ payment provider deposit ကို တူညီတဲ့ financial posting rules အောက်မှာ စီမံရန်။
+```
+Validate request + idempotency
+            ↓
+Begin database transaction
+            ↓
+Lock wallet rows in stable order
+            ↓
+Check ownership / status / currency / balance
+            ↓
+Create transfer + balanced journal
+            ↓
+Update cached balances + outbox
+            ↓
+Commit
+            ↓
+Publish notifications asynchronously (in-app record + Reverb broadcast)
+```
 
-### Manual deposit flow
+### Frontend flow
 
-1. Customer က deposit request ဖန်တီးမယ်။
+1. Source wallet ရွေးမယ်။
 
-2. Finance operator က အထောက်အထားနဲ့ amount ကို စစ်ဆေးမယ်။
+2. Destination wallet/account ရွေးမယ်။
 
-3. Approval ပြီးနောက် ငွေလက်ခံရရှိမှုကို အတည်ပြုမယ်။
+3. Amount နဲ့ optional transfer reference ထည့်မယ်။
 
-4. သတ်မှတ်ထားတဲ့ policy အတိုင်း ledger journal post လုပ်ပြီး wallet balance တိုးမယ်။
+4. Backend က available balance, fees, destination eligibility ကို validate လုပ်မယ်။
 
-5. Audit record နဲ့ notification ထုတ်မယ်။
+5. Confirmation screen မှာ destination, amount, fee, total debit, currency ပြမယ်။
 
-Approval ရှိတာနဲ့ ငွေလက်ခံရရှိပြီးသားလို့ မယူဆရဘူး။ `approved` နဲ့ `succeeded` ရဲ့ အဓိပ္ပာယ်ကို business rules မှာ သီးခြားသတ်မှတ်ထားရမယ်။
+6. User က confirm လုပ်မယ်။
 
-### Provider deposit flow
+7. Request ကို idempotency key နဲ့ submit လုပ်မယ်။
 
-1. Deposit intent ဖန်တီးမယ်။
+8. Response အပေါ်မူတည်ပြီး success, pending, failed သို့မဟုတ် unknown/reconciling status ပြမယ်။
 
-2. Provider checkout/payment process ကို စတင်မယ်။
+9. Receipt/transaction detail ကို ပြမယ်။
 
-3. Webhook ကို လက်ခံပြီး signature စစ်မယ်။
+### Business rules
 
-4. `webhook_inbox` ထဲမှာ provider event ID ကို unique နဲ့ သိမ်းမယ်။
+* `amount_minor > 0`
 
-5. Provider reference, amount, currency, expected order နဲ့ payment status ကို verify လုပ်မယ်။
+* Source နဲ့ destination မတူရ။
 
-6. Valid ဖြစ်မှ ledger နဲ့ wallet balance ကို atomic transaction နဲ့ update လုပ်မယ်။
+* Currency mismatch ကို FX feature မရှိသေးသရွေ့ reject လုပ်ရမယ်။
 
-7. Duplicate webhook ဆိုရင် financial posting ထပ်မလုပ်ဘဲ safe response ပြန်ပေးမယ်။
+* `available_balance >= amount + fee` ဖြစ်ရမယ်။
 
-### လိုအပ်တဲ့ services
+* Concurrent requests တွေကြား overspending မဖြစ်ရ။
 
-* `DepositService`
+* Double-click သို့မဟုတ် retry ကြောင့် duplicate transfer မဖြစ်ရ။
 
-* `ProviderWebhookService`
+* Client timeout ဖြစ်တာနဲ့ transfer failed လို့ မယူဆရ။ Request status ကို ပြန်စစ်ရမယ်။
 
-* `PaymentProviderInterface`
+### Frontend state machine
 
-* Provider-specific adapters
+`editing → validating → confirming → submitting → succeeded | failed | pending/reconciling`
 
-* `WebhookInboxRepository`
+Submit လုပ်ပြီးချိန်မှာ button disable လုပ်ရုံနဲ့ duplicate protection ပြီးပြီလို့ မယူဆရ။ Backend idempotency က အဓိကကာကွယ်မှုဖြစ်တယ်။
 
-* Provider signature verification
+### Tests
 
-* Webhook retry/replay handling
+* Unit tests for business rules
 
-Deliverables: Manual deposit APIs, provider adapter contract, webhook inbox, duplicate webhook tests.
+* Feature tests for transfer API
 
-Done when: Webhook တစ်ခုကို အကြိမ်များစွာပို့လည်း wallet credit တစ်ကြိမ်သာ ဖြစ်ရမယ်။ Invalid signature နဲ့ amount/currency mismatch တွေကို reject လုပ်ရမယ်။
+* Concurrent transfer tests
 
-## Phase 05 — Withdrawals
+* Idempotency replay tests
 
-Withdrawal က transfer ထက် ပိုရှုပ်တယ်။ Customer balance ထဲက ငွေကို reserve လုပ်ထားပြီး provider/bank က အမှန်တကယ် payout ပြီးမပြီး မသေချာတဲ့အခြေအနေတွေကို ကိုင်တွယ်ရမယ်။
+* Frontend form and confirmation tests
 
-### Withdrawal state flow
+* End-to-end transfer success/failure tests
 
-`pending` — Request created
+Acceptance criteria: Source balance မလုံလောက်ရင် transfer မဖြစ်ရ၊ successful transfer တစ်ခုအတွက် debit/credit နှစ်ဖက်စလုံး တိကျရမယ်။
 
-`reserved` — Funds held
+## Phase 08 — Deposits
 
-`processing` — Payout initiated
+### Backend
 
-`succeeded`
+* Deposit intent/request
 
-Confirm payout; consume hold
+* Manual deposit approval workflow
 
-`reconciling`
+* Payment-provider interface/adapters
 
-Unknown result; keep hold
+* Webhook inbox and signature verification
 
-`failed` / `cancelled` ဖြစ်ပြီး payout မဖြစ်ကြောင်း အတည်ပြုပြီးမှ hold ကို release လုပ်မယ်။
+* Provider reference and amount/currency verification
 
-### Implementation tasks
+* Duplicate webhook protection
 
-* `WithdrawalService`
+* Deposit state transitions
 
-* `WalletHoldService`
+* Ledger posting and wallet balance update
 
-* `wallet_holds` table
+### Frontend
 
-* `reserved_balance` consistency checks
+* Deposit method selection
+
+* Deposit amount form
+
+* Payment instructions/checkout redirection
+
+* Deposit reference and status page
+
+* Manual proof upload if required
+
+* Deposit history
+
+* Pending, expired, rejected and succeeded states
+
+### Business rules
+
+* Admin approval နဲ့ actual payment confirmation ကို ခွဲခြားရမယ်။
+
+* Provider webhook ကို verify မလုပ်ဘဲ customer balance မတိုးရ။
+
+* Duplicate webhook ကို ledger posting ထပ်မလုပ်ဘဲ handle လုပ်ရမယ်။
+
+* Client redirect success တစ်ခုတည်းကို payment success အဖြစ် မယုံရ။
+
+* Provider timeout/unknown outcome ဖြစ်ရင် status inquiry/reconciliation ကို အသုံးပြုရမယ်။
+
+### Tests
+
+* Invalid signature
+
+* Duplicate provider event ID
+
+* Amount/currency mismatch
+
+* Webhook retries
+
+* Manual approval permissions
+
+* Frontend status refresh and delayed completion
+
+Acceptance criteria: Provider payment ကို verified ဖြစ်ပြီးမှ credit လုပ်ရမယ်။ Same provider event ကို ထပ်ပို့လည်း duplicate wallet credit မဖြစ်ရ။
+
+## Phase 09 — Withdrawals
+
+### Backend
+
+* Withdrawal request and review
+
+* Wallet holds
+
+* Reserved balance synchronization
 
 * Payout provider adapter
 
 * Provider status inquiry
 
-* Timeout handling and reconciliation
+* Timeout recovery
 
-* Admin review/approval
+* Hold consumption/release
 
-* Hold expiration policy with safe state verification
+* Ledger posting on confirmed payout
 
-Accounting rule: Hold လုပ်တာဟာ ငွေကို ချက်ချင်း ledger မှာ ထုတ်လိုက်တာမဟုတ်ဘူး။ Available balance ကို လျှော့ထားတာဖြစ်တယ်။ Payout အောင်မြင်မှ wallet liability လျှော့ပြီး payout clearing account သို့မဟုတ် သက်ဆိုင်ရာ account ကို post လုပ်မယ်။ Provider/bank settlement ရောက်လာတဲ့အခါ clearing ကို cash/bank နဲ့ reconcile လုပ်မယ်။
+* Audit trail
 
-Deliverables: Withdrawal APIs, hold lifecycle, payout adapter, timeout recovery tests.
+### Frontend
 
-Done when: Double withdrawal မဖြစ်ရ၊ failed payout ကို မှားယွင်းပြီး hold release မလုပ်ရ၊ timeout ဖြစ်တဲ့ transaction ကို status မသိသေးဘဲ failed မသတ်မှတ်ရ။
+* Withdrawal form
 
-## Phase 06 — Transaction History, Statements & Admin
+* Available balance display
 
-### Customer APIs
+* Fee and total deduction preview
 
-* `GET /api/v1/wallets`
+* Payout destination management/display
 
-* `GET /api/v1/wallets/{wallet}/balance`
+* Confirmation and status tracking
 
-* `GET /api/v1/wallets/{wallet}/transactions`
+* Pending review / processing / reconciling screens
 
-* `GET /api/v1/transfers/{transfer}`
+* Withdrawal history
 
-* `GET /api/v1/deposits`
+* Support/review information for unresolved payouts
 
-* `GET /api/v1/withdrawals`
+### Business rules
 
-### Admin features
+* Request စတင်ချိန်မှာ amount ကို hold လုပ်မယ်။
 
-* Customer and wallet management
+* Hold create/update နဲ့ reserved balance update ကို transaction တစ်ခုတည်းထဲမှာ လုပ်ရမယ်။
 
-* Freeze/unfreeze wallet
+* Timeout ဖြစ်လို့ payout မသေချာသေးရင် hold ကို ဆက်ထားမယ်။
 
-* Deposit/withdrawal review
+* Payout မဖြစ်ကြောင်း အတည်ပြုပြီးမှ failed/cancelled အဖြစ်သတ်မှတ်ပြီး hold release လုပ်မယ်။
+
+* Confirmed payout အတွက် ledger entry ကို တစ်ကြိမ်သာ post လုပ်မယ်။
+
+### Withdrawal states
+
+`pending → reserved → processing → succeeded`
+
+အခြေအနေမသေချာရင် `reconciling` သို့ ဝင်နိုင်တယ်။ Confirmed failure ဖြစ်ပြီးမှ သတ်မှတ်ထားတဲ့ policy အတိုင်း hold release လုပ်မယ်။
+
+Acceptance criteria: Double withdrawal မဖြစ်ရ၊ provider timeout ဖြစ်ချိန်မှာ customer ရဲ့ ငွေကို မတော်တဆ ထပ်သုံးခွင့်မပေးရ။
+
+
+# Part E — Customer UI, Admin UI & platform reliability
+
+## Phase 10 — Transaction history, statements & Admin portal
+
+ဒီ Phase မှာ customer portal နဲ့ finance/admin portal နှစ်ခုလုံးကို functional အပြည့်အဝ ဖြစ်အောင် တည်ဆောက်မယ်။
+
+### Customer portal
+
+* Unified transaction history
+
+* Transfer, deposit, withdrawal filters
+
+* Currency, status, date-range filters
+
+* Transaction detail and receipt
+
+* Cursor pagination
+
+* Statement export
+
+* Reversal/refund status display
+
+* Clear handling of pending/reconciling transactions
+
+### Admin portal
+
+* Customer search and detail
+
+* Wallet management and freeze/unfreeze
+
+* Deposit review and approval
+
+* Withdrawal review and approval
 
 * Transfer and journal search
 
-* Provider transaction lookup
+* Provider reference lookup
 
 * Reconciliation discrepancy review
 
-* Audit history
+* Audit timeline
 
-* Role-based permission checks
+* Permission management
 
-### Important design decisions
+* Controlled correction/reversal workflow
 
-* Transaction history ကို `transfers` table တစ်ခုတည်းမှ မထုတ်ပါနဲ့။ Deposits, withdrawals, fees, reversals တို့ကိုလည်း history ထဲမှာ ထည့်ရမယ်။
+### UI/UX rules
 
-* Cursor pagination ကို timestamp တစ်ခုတည်းမဟုတ်ဘဲ stable ordering key နဲ့ သုံးပါ။
+* Financial amount, currency, reference, status နဲ့ timestamp တွေကို တစ်သမတ်တည်းပြမယ်။
 
-* Customer က ကိုယ့် wallet/resource ပဲ မြင်နိုင်ရမယ်။ URL ထဲက ID ပြောင်းပြီး အခြား user data ရယူလို့ မရစေရ။
+* `succeeded`, `failed`, `pending`, `reconciling` တို့ကို UI မှာ သီးခြားဖော်ပြမယ်။
 
-* Posted ledger data ကို admin ကတောင် direct edit မလုပ်နိုင်ရဘူး။ Correction ကို controlled reversal workflow နဲ့ပဲ လုပ်ရမယ်။
+* Approval/rejection အတွက် confirmation dialog နဲ့ reason field သုံးမယ်။
 
-* Statement ထုတ်တဲ့အခါ opening balance, movements, closing balance, currency နဲ့ time range ကို ရှင်းရှင်းလင်းလင်း ဖော်ပြရမယ်။
+* High-risk action များအတွက် reason, actor, timestamp, target resource ကို audit trail ထဲမှာ သိမ်းမယ်။
 
-Deliverables: Customer transaction views, admin dashboard, policies, statement export, audit logs.
+* Permission မရှိတဲ့ action ကို UI မှာ ဖျောက်နိုင်ပေမယ့် Backend ကလည်း reject လုပ်ရမယ်။
 
-Done when: Authorization tests, pagination tests, statement total verification အားလုံး pass ဖြစ်ရမယ်။
+* Table filtering/sorting ကို allowlisted query parameters နဲ့ပဲ support လုပ်မယ်။
 
+* Statement ထုတ်တဲ့အခါ opening balance, movements, closing balance, currency နဲ့ period ကို ရှင်းရှင်းလင်းလင်းပြမယ်။
 
-## Phase 07 — Events, Transactional Outbox & PostgreSQL Partitioning
+### Tests
 
-ဒီ Phase မှာ financial transaction ကို အောင်မြင်စွာ commit လုပ်ပြီးနောက် event publishing, notifications နဲ့ event storage ကို reliable ဖြစ်အောင် တည်ဆောက်မယ်။
+* Cross-customer authorization
 
-### 7.1 Transactional outbox
+* Admin role/permission matrix
 
-`outbox_messages` table ကို financial data နဲ့အတူ database transaction ထဲမှာ insert လုပ်မယ်။
+* Pagination stability
 
-```
-Database Transaction
-  ├── Transfer
-  ├── Journal Entry
-  ├── Ledger Postings
-  ├── Wallet Balance Updates
-  └── Outbox Message
-           │
-         COMMIT
-           │
-           ▼
-     Outbox Worker
-           │
-           ├── Queue notification
-           ├── Publish application event
-           └── Retry failed delivery
-```
+* Filter/sort correctness
 
-Outbox က application database commit နဲ့ event delivery ကြားမှာ ဖြစ်နိုင်တဲ့ failure ကို ကိုင်တွယ်ပေးတယ်။ ဒါပေမဲ့ consumer က duplicate event ကိုလည်း handle လုပ်နိုင်ဖို့ idempotent ဖြစ်ရမယ်။
+* Statement totals vs ledger
 
-### 7.2 Partition strategy
+* Audit records for privileged actions
 
-| Table                | Initial strategy        | အကြောင်းရင်း                              |
-| -------------------- | ----------------------- | ----------------------------------------- |
-| `payment_events`     | Monthly RANGE           | High-volume append-only events            |
-| `audit_events`       | Monthly RANGE           | Audit history growth                      |
-| `webhook_deliveries` | Monthly RANGE           | Provider delivery attempts                |
-| `webhook_inbox`      | Unpartitioned initially | Global provider-event deduplication       |
-| `outbox_messages`    | Unpartitioned initially | Mutable retry/processing state            |
-| `journal_entries`    | Unpartitioned initially | Simpler financial integrity and queries   |
-| `ledger_postings`    | Unpartitioned initially | Benchmark မလုပ်မချင်း complexity မတိုးရန် |
+* Responsive tables and accessible dialogs
 
-Partitioning ကို `occurred_at` / `created_at` ကဲ့သို့ timestamp column အလိုက် monthly range ခွဲမယ်။
+Acceptance criteria: Customer က ကိုယ့် data ပဲ မြင်နိုင်ရမယ်။ Admin က ခွင့်ပြုထားတဲ့ action တွေပဲ လုပ်နိုင်ရမယ်။ Statement total တွေက ledger-derived figures နဲ့ ကိုက်ညီရမယ်။
 
-ဥပမာ `payment_events` အတွက်—
+## Phase 11 — Events, outbox & PostgreSQL partitioning
 
-SQL
+### Backend tasks
 
-```
-CREATE TABLE payment_events (
-    id          uuid        NOT NULL,
-    aggregate_type varchar(50) NOT NULL,
-    aggregate_id uuid        NOT NULL,
-    event_type   varchar(100) NOT NULL,
-    occurred_at  timestamptz NOT NULL,
-    payload      jsonb       NOT NULL DEFAULT '{}',
-    PRIMARY KEY (id, occurred_at)
-) PARTITION BY RANGE (occurred_at);
-```
+* `outbox_messages`
 
-Partition တစ်ခုချင်းစီရဲ့ boundaries တွေကို `FOR VALUES FROM (...) TO (...)` နဲ့ သတ်မှတ်ရမယ်။ Monthly partitions တွေကို အလိုအလျောက် ကြိုတင်ဖန်တီးပြီး missing partition alerts ထားမယ်။
+* Outbox worker and retry policy
 
-သတိပြုရန်: Partitioned table မှာ partition key မပါဝင်တဲ့ global unique constraint ကို ပုံမှန်အားဖြင့် သတ်မှတ်လို့မရပါဘူး။ Event ID ကို globally unique ဖြစ်စေချင်ရင် unpartitioned registry သို့မဟုတ် သင့်တော်တဲ့ uniqueness strategy တစ်ခု ထပ်လိုနိုင်တယ်။
+* Event consumers
 
-### 7.3 Partition implementation tasks
+* `payment_events`
 
-* `PartitionManager` service/command
+* `audit_events`
 
-* Next N months အတွက် partitions ကြိုတင်ဖန်တီးခြင်း
+* `webhook_deliveries`
 
-* Missing partition health check
+* Monthly partition creation
 
-* Partition-aware indexes
+* Partition monitoring and retention policy
 
-* Retention policy
+* Event deduplication
 
-* Partition pruning query tests
+### Frontend tasks
 
-* Event volume / query latency benchmarks
+* Notification center (REST polling + Reverb/Echo WebSocket push)
 
-Deliverables: Outbox worker, event tables, partition automation, monitoring alerts.
+* Unread/read state
 
-Done when: Partition အသစ်တွေ အလိုအလျောက်ဖန်တီးနိုင်ရမယ်၊ timestamp filter ပါတဲ့ query တွေမှာ partition pruning အလုပ်လုပ်ရမယ်၊ worker restart ဖြစ်လည်း event delivery ပြန်လည်ဆက်လုပ်နိုင်ရမယ်။
+* Transaction status refresh
 
-## Phase 08 — Reconciliation & Financial Recovery
+* Retry and stale-data behavior
 
-ရည်ရွယ်ချက်: System ထဲက balance, ledger နဲ့ external payment provider records တွေ မကိုက်ညီတဲ့အခါ ရှာဖွေ၊ စစ်ဆေး၊ ပြန်လည်ဖြေရှင်းနိုင်ဖို့။
+* Duplicate notifications မပြစေဖို့ event ID handling
 
-### Reconciliation layers
+* Realtime update ရှိရင် reconnect and resync behavior — private channel `App.Models.User.{id}`၊ event `notification.created`
 
-1. Wallet reconciliation
+### Partitioning strategy
 
-Ledger-derived wallet balance နဲ့ `wallet_balances.posted_balance` ကို နှိုင်းယှဉ်မယ်။ Active holds စုစုပေါင်းနဲ့ `reserved_balance` ကိုလည်း စစ်မယ်။
+| Table                | Initial strategy                    |
+| -------------------- | ----------------------------------- |
+| `payment_events`     | Monthly RANGE partition             |
+| `audit_events`       | Monthly RANGE partition             |
+| `webhook_deliveries` | Monthly RANGE partition             |
+| `webhook_inbox`      | Unpartitioned initially             |
+| `outbox_messages`    | Unpartitioned initially             |
+| `journal_entries`    | Unpartitioned initially             |
+| `ledger_postings`    | Benchmark မလုပ်မချင်း unpartitioned |
 
-2. Provider reconciliation
+Partitioned table တွေမှာ partition key မပါဝင်တဲ့ global uniqueness constraints ကို မရနိုင်တဲ့ ကန့်သတ်ချက်တွေရှိတယ်။ Event ID နဲ့ provider event ID ကို global deduplication လုပ်ဖို့ strategy ကို partitioning နဲ့ သီးခြား design လုပ်ရမယ်။
 
-Deposit, payout, provider transaction references နဲ့ provider settlement records တွေကို နှိုင်းယှဉ်မယ်။
+### Frontend realtime rules
 
-3. Bank settlement reconciliation
+Realtime event ရောက်လာတာကို authoritative balance အဖြစ် တိုက်ရိုက်မယူဆရ။ Event က status refresh လုပ်ဖို့ signal ဖြစ်နိုင်ပြီး၊ current financial state ကို Backend API က ပြန်လည်စစ်ဆေးရမယ်။
 
-Provider clearing accounts နဲ့ အမှန်တကယ် bank statement/settlement amounts ကို match လုပ်မယ်။
+Laravel Reverb ကို Laravel Echo (`laravel-echo` + `pusher-js`) နဲ့ချိတ်ပြီး private channel `App.Models.User.{id}` ပေါ်မှာ `notification.created` event ကို ပို့မယ်။ Channel authorization ကို Sanctum bearer token နဲ့ `/broadcasting/auth` မှတစ်ဆင့် လုပ်မယ်။ WebSocket က signal အဖြစ်သာသုံးပြီး REST ကသာ authoritative ဖြစ်မယ်၊ ပြတ်သွား/reconnect ဖြစ်လျှင် polling နဲ့ resync ကို ဆက်လုပ်မယ်။ `BROADCAST_CONNECTION` သို့မဟုတ် `VITE_REVERB_APP_KEY` မရှိလျှင် realtime ပိတ်ပြီး polling သာ အလုပ်လုပ်ရမယ်။
 
-### Additional tables
+Acceptance criteria: Worker restart, duplicate event, failed delivery နဲ့ partition rollover ဖြစ်လည်း financial transaction data မပျောက်ရ။ UI က stale data ကို လိုအပ်သလို refresh လုပ်နိုင်ရမယ်။
 
-* `reconciliation_runs`
+## Phase 12 — Reconciliation & recovery
 
-* `reconciliation_items`
+### Backend reconciliation
 
-* `provider_settlements`
+* Wallet balance vs ledger
 
-* `provider_settlement_lines`
+* Reserved balance vs active holds
 
-### Implementation tasks
+* Provider transaction vs local deposit/withdrawal
 
-* Scheduled reconciliation commands
+* Provider settlement vs clearing accounts
 
-* Mismatch classification — missing, duplicate, amount mismatch, status mismatch
+* Bank settlement vs accounting records
 
-* `reconciling` transaction recovery workflow
+* Missing/duplicate/mismatched transactions
 
-* Admin review and resolution records
+* Reconciliation runs, items and resolution records
 
-* Reversal/correction service
+### Frontend reconciliation UI
 
-* Alerting for unresolved discrepancies
+* Reconciliation run list
 
-အရေးကြီးချက်: Discrepancy တွေ့တာနဲ့ balance ကို အလိုအလျောက်ပြင်မပစ်ပါနဲ့။ ဘာကြောင့် မကိုက်တာလဲဆိုတာ ရှာဖွေပြီး approved correction workflow နဲ့ပဲ ဖြေရှင်းရမယ်။
+* Run details and totals
 
-Deliverables: Reconciliation jobs, discrepancy reports, manual resolution workflow, recovery runbooks.
+* Mismatch filters
 
-Done when: Deliberately ထည့်ထားတဲ့ mismatch တွေကို ရှာဖွေတွေ့ရှိနိုင်ရမယ်၊ resolution ကို audit trail နဲ့ ပြန်လည်စစ်ဆေးနိုင်ရမယ်။
+* Local vs provider amount comparison
 
-## Phase 09 — Security, Reliability & Performance
+* Missing transaction indicators
 
-### Security
+* Review/assign/resolution workflow
 
-* Authentication, authorization, ownership checks
+* Resolution reason and audit timeline
 
-* Admin MFA အတွက် design/implementation
+### Business rule
 
-* Rate limiting
+Discrepancy တွေ့တာနဲ့ wallet balance ကို အလိုအလျောက်ပြင်မပစ်ရ။ အကြောင်းရင်းကို ရှာဖွေပြီး authorized correction/reversal workflow နဲ့ပဲ ဖြေရှင်းရမယ်။
 
-* Secrets management
+### Recovery states
 
-* Webhook signature verification
+`detected → investigating → resolution_pending → resolved`
 
-* Replay/duplicate protection
+လိုအပ်တဲ့ approval policy နဲ့ actor separation ကို သတ်မှတ်ထားရမယ်။
 
-* Sensitive data redaction
+Acceptance criteria: Inject လုပ်ထားတဲ့ mismatch တွေကို detect လုပ်နိုင်ရမယ်။ Discrepancy ကို ဘယ်သူ၊ ဘယ်အချိန်၊ ဘာကြောင့် resolve လုပ်ခဲ့တယ်ဆိုတာ ပြန်လည်စစ်ဆေးနိုင်ရမယ်။
 
-* Audit log access control
+## Phase 13 — Security, accessibility, QA & performance
 
-* Dependency/security scanning
+ဒီ Phase ကို နောက်ဆုံးမှ စစ်မယ့်အစား Phase တိုင်းမှာ quality gates ထားပြီး ဒီ Phase မှာ end-to-end audit လုပ်မယ်။
 
-### Reliability
+### Backend quality gates
 
-* Deadlock and transaction retry strategy
+* Authentication and authorization tests
 
-* Queue retry, backoff, failed-job handling
+* Idempotency and replay tests
 
-* Provider timeout recovery
+* Concurrent transfer/withdrawal tests
 
-* Database connection pool/connection limits
+* Ledger balance invariants
 
-* Redis outage handling
+* Database constraint verification
 
-* Graceful shutdown and worker recovery
+* Provider webhook security
+
+* Queue retry and recovery tests
+
+* Query performance and partition pruning
+
+* Secrets and dependency scanning
+
+### Frontend quality gates
+
+* TypeScript strict typecheck
+
+* ESLint and formatter
+
+* Unit/component tests
+
+* API integration tests
+
+* End-to-end customer journeys
+
+* Keyboard navigation and focus tests
+
+* Accessibility checks against applicable WCAG 2.2 criteria
+
+* Responsive layout testing
+
+* Dark/light theme contrast checks if both themes are supported
+
+* UI states for timeout, pending, error and retry
 
 ### Performance tests
 
-| Test                             | ဘာကိုသိချင်တာလဲ                        |
-| -------------------------------- | -------------------------------------- |
-| Concurrent same-wallet transfers | Overspending / race conditions ရှိမရှိ |
-| Same idempotency key replay      | Duplicate posting ဖြစ်မဖြစ်            |
-| Hot-wallet contention            | Row-lock bottleneck                    |
-| Ledger history queries           | Indexing/query latency                 |
-| Large event-table scans          | Partition pruning အလုပ်လုပ်မလုပ်       |
-| Outbox backlog                   | Worker throughput နဲ့ recovery time    |
-| Reconciliation on large datasets | Runtime, locks, DB load                |
+| Scenario                          | Objective                                         |
+| --------------------------------- | ------------------------------------------------- |
+| Concurrent requests to one wallet | Overspending မဖြစ်စေရန်                           |
+| Duplicate idempotency requests    | Duplicate money movement မဖြစ်စေရန်               |
+| Large transaction history         | Query latency and pagination                      |
+| High event volume                 | Partition pruning and index efficiency            |
+| Outbox backlog                    | Worker throughput and recovery                    |
+| Reconciliation at scale           | Runtime, locks and database load                  |
+| Frontend dashboard                | Render speed, network requests and loading states |
 
-### Ledger partitioning ကို ဘယ်အချိန်မှာ ဆုံးဖြတ်မလဲ?
+### Non-functional requirements
 
-Ledger tables ကို အစကတည်းက partition မလုပ်ဘဲ realistic dataset နဲ့ benchmark လုပ်မယ်။ Query latency, index size, write throughput, retention requirements နဲ့ operational complexity ကိုတိုင်းတာပြီးမှ ဆုံးဖြတ်မယ်။
+Project requirement တွေမှာ အောက်ပါအချက်တွေကို measurable target အဖြစ် သတ်မှတ်မယ်။
 
-Ledger partitioning လုပ်မယ်ဆိုရင် journal/posting relationships, cross-partition queries, uniqueness, FK constraints နဲ့ accounting-period queries ကို သီးခြား design review လုပ်ရမယ်။
+* Availability and recovery objectives
 
-Deliverables: Load-test report, threat review, performance baselines, reliability runbooks.
+* API latency percentiles
 
-Done when: သတ်မှတ်ထားတဲ့ workload အောက်မှာ correctness tests pass ဖြစ်ပြီး performance targets ကို တိုင်းတာနိုင်ရမယ်။
+* Throughput under agreed workloads
 
-## Phase 10 — Deployment & Operations
+* Error rate
 
-Production မတင်ခင် အောက်ပါ operational checklist ကို ဖြည့်ဆည်းမယ်။
+* Maximum queue backlog/recovery time
 
-* Separate development, staging, production environments
+* Backup retention and restore time
 
-* Database migrations and rollback/recovery plan
+* Accessibility conformance target
 
-* TLS, secrets, least-privilege database roles
+* Security risk acceptance policy
 
-* Redis queues and worker supervision
+Target တန်ဖိုးတွေကို workload, infrastructure နဲ့ business requirement မသိဘဲ အတိအကျမခန့်မှန်းဘူး။ Requirement review မှာ သတ်မှတ်ပြီး benchmark evidence နဲ့ verify လုပ်မယ်။
 
-* Scheduled jobs and partition creation monitoring
+Acceptance criteria: Release အတွက် critical financial correctness, authorization, security, accessibility နဲ့ performance gates တွေ pass ဖြစ်ရမယ်။ Unresolved high-risk defects ရှိရင် release ကို block လုပ်မယ်။
 
-* Application, database, queue, provider metrics
+## Phase 14 — Deployment & operations
 
-* Centralized structured logs and correlation IDs
+### Backend / infrastructure
 
-* Alerts for failed payouts, webhook backlog, reconciliation mismatch
+* Development, staging, production environments
 
-* Automated backups
+* TLS and secrets management
 
-* Restore test on a separate environment
+* Least-privilege database roles
 
-* Incident response and manual recovery runbooks
+* Database migration/recovery plan
 
-* Production smoke tests and staged rollout
+* Redis queue workers and supervision
 
-Done when: Database restore ကို လက်တွေ့စမ်းသပ်ပြီးပြီ၊ alert တွေကို စမ်းသပ်ပြီးပြီ၊ provider timeout နဲ့ duplicate webhook recovery ကို staging မှာ end-to-end စမ်းသပ်ပြီးပြီ။
+* Scheduled tasks and partition automation
 
+* Structured logs and correlation IDs
 
-## 3. Database schema ကို တည်ဆောက်ရာမှာ ပြင်ဆင်ထားရမယ့်အချက်များ
+* Metrics, dashboards and alerts
 
-လက်ရှိ draft schema ကို implementation မစခင် အောက်ပါအချက်တွေ ပြင်ဆင်ဖို့လိုတယ်။
+* Backup/restore drills
 
-| အချက်                       | Implementation decision                                                                                           |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Wallet/currency consistency | `wallets (id, currency_code)` composite unique key နဲ့ transfer/deposit/withdrawal composite foreign keys သုံးရန် |
-| Idempotency                 | Scope + key + request hash နဲ့ centrally manage လုပ်ရန်                                                           |
-| Ledger immutability         | Posted journal/postings ကို update/delete မလုပ်နိုင်အောင် ကာကွယ်ရန်                                               |
-| Reserved balance            | Active holds စုစုပေါင်းနဲ့ balance cache ကို transaction အတွင်း synchronize လုပ်ရန်                               |
-| Provider references         | Provider ID ကို foreign key ချိတ်ရန်၊ provider reference uniqueness ကို provider အလိုက်သတ်မှတ်ရန်                 |
-| Multi-currency              | Amount ကို minor units အဖြစ်သိမ်းပြီး journal တစ်ခုအတွင်း currency မရောရန်                                        |
-| Financial corrections       | Direct update မလုပ်ဘဲ reversal/correction entries သုံးရန်                                                         |
-| Events                      | Event partitioning နဲ့ global deduplication ကို သီးခြားစီ design လုပ်ရန်                                          |
+* Incident response runbooks
 
-ဒီအချက်တွေကို migration ရေးပြီးမှ ပြင်တာထက် Phase 00–02 အတွင်း design review လုပ်ပြီး ပြင်ဆင်ထားတာ ပိုကောင်းတယ်။
+### Frontend deployment
 
-## 4. Recommended implementation milestones
+* Production Vite build
 
-## Milestone tracker
+* Environment-specific API base URLs
 
-3 / 5 complete
+* Cache policy and asset versioning
 
-M1 — Foundation — ✅ complete
+* CSP/security headers
 
-Phase 00–02
+* SPA route fallback configuration
 
-• Business rules approved
+* Source map policy
 
-• Auth and module foundation
+* Error reporting and privacy-safe telemetry
 
-• Ledger posting tests pass
+* Production smoke tests
 
-M2 — Core money movement — ✅ complete
+* Staged rollout and rollback procedure
 
-Phase 03–05
+### Critical alerts
 
-• Internal transfer is atomic
+* Failed payout / unknown payout outcome
 
-• Deposit deduplication works
+* Reconciliation discrepancy
 
-• Withdrawal holds and timeout recovery work
+* Webhook processing backlog
 
-M3 — User and admin workflows — ✅ complete
+* Outbox queue backlog
 
-Phase 06
+* Partition missing
 
-• Transaction history and statements
+* Database connection saturation
 
-• Authorization and audit coverage
+* Elevated error rate/latency
 
-M4 — Scale and correctness
+* Backup failure
 
-Phase 07–09
+Acceptance criteria: Backup ကို restore စမ်းသပ်ပြီးပြီ၊ alerts တွေကို test လုပ်ပြီးပြီ၊ staging မှာ end-to-end recovery workflow တွေ အောင်မြင်ပြီးပြီ။
 
-• Outbox and partition automation
 
-• Reconciliation workflows
+# Part F — Mandatory code design, business logic & UI guidelines
 
-• Concurrency and load tests
+အထက်ပါ Phase တွေက ဘာတွေတည်ဆောက်မလဲဆိုတာ သတ်မှတ်ပေးတယ်။ ဒီအပိုင်းကတော့ developer သို့မဟုတ် AI coding agent က ဘယ် Phase မှာပဲ code ရေးရေး လိုက်နာရမယ့် project-wide engineering rules တွေဖြစ်တယ်။
 
-M5 — Production readiness
+## 1. Backend code design guidelines
 
-Phase 10
+### Layer responsibilities
 
-• Monitoring and alerts
+HTTP Controller
 
-• Backup restore verified
+HTTP request/response only
 
-• Incident runbooks tested
+FormRequest + Authorization
 
-ဒီ checklist က ကိုယ်တိုင် progress မှတ်သားဖို့အတွက်ပါ။ Project database ထဲက implementation status ကို အလိုအလျောက်ဖတ်ပြတာ မဟုတ်ပါဘူး။
+Input validation and access checks
 
-## 5. AI coding agent နဲ့ implementation လုပ်မယ့် workflow
+DTO / Command
 
-Copilot သို့မဟုတ် local coding agent ကို အသုံးပြုမယ်ဆိုရင် Phase တစ်ခုလုံးကို တစ်ခါတည်း code ရေးခိုင်းတာထက် အောက်ပါ workflow နဲ့သွားပါ။
+Typed and explicit input
 
-1. Analyze — လက်ရှိ project structure နဲ့ existing conventions ကို စစ်ဆေးခိုင်းပါ။
+Application Service
 
-2. Design — Schema, interfaces, state transitions, transaction boundaries ကို review လုပ်ခိုင်းပါ။
+Use-case orchestration and transaction boundary
 
-3. Implement — သတ်မှတ်ထားတဲ့ scope ထဲက feature တစ်ခုကိုသာ ရေးခိုင်းပါ။
+Domain Services
 
-4. Test — Unit, feature, concurrency, idempotency tests ထည့်ခိုင်းပါ။
+Financial invariants and business rules
 
-5. Review — Race conditions, authorization, currency consistency, ledger imbalance နဲ့ failure recovery ကို စစ်ခိုင်းပါ။
+Repository / Persistence
 
-6. Verify — Tests run လုပ်ပြီး output အပေါ်အခြေခံကာ နောက် Phase ကို ဆက်ပါ။
+Data access and query implementation
 
-Financial code အတွက် “tests pass ဖြစ်တယ်” ဆိုတာနဲ့ မလုံလောက်ပါဘူး။ Test တွေက အရေးကြီးတဲ့ financial invariants တွေကို တကယ်စစ်ဆေးထားသလားဆိုတာပါ review လုပ်ရမယ်။
+PostgreSQL
 
-## 6. ဘယ်ကနေ စရမလဲ?
+Constraints, atomicity and durable records
 
-ကျွန်တော့်အကြံပြုချက်က Phase 00 ကို အရင်ပြီးစီးအောင်လုပ်ပြီး Phase 01–02 ကို ဆက်သွားပါ။ အထူးသဖြင့် `LedgerPostingService`, idempotency model, wallet locking နဲ့ accounting rules တွေကို မတည်ဆောက်ခင် သေချာသတ်မှတ်ထားဖို့လိုတယ်။
+### Mandatory rules
 
-အဲဒီ foundation ပြီးသွားမှ transfer, deposit, withdrawal တို့ကို ဆက်တည်ဆောက်ရင် financial correctness ကို feature တစ်ခုချင်းစီမှာ ပြန်စဉ်းစားနေရတာ နည်းသွားမယ်။
+* Single responsibility: Class တစ်ခုစီမှာ တာဝန်တစ်ခုကို ရှင်းလင်းစွာ သတ်မှတ်မယ်။
+
+* Dependency inversion: Core business rules က infrastructure implementation ကို တိုက်ရိုက်မမှီခိုစေရ။
+
+* Explicit transactions: Financial write operation တွေမှာ transaction boundary ကို ရှင်းရှင်းလင်းလင်း သတ်မှတ်မယ်။
+
+* Typed contracts: DTOs, interfaces, enums နဲ့ return types ကို လိုအပ်သလို သုံးမယ်။
+
+* Centralized exceptions: Domain errors နဲ့ HTTP errors ကို ခွဲခြားပြီး consistent response ထုတ်မယ်။
+
+* No hidden side effects: Model observer/event callback တွေက money movement ကို မသိမသာ မလုပ်စေရ။
+
+* No business logic in UI: Frontend က ပြသမှုနဲ့ interaction ကို ကိုင်တွယ်ပြီး financial decision ကို Backend က ဆုံးဖြတ်မယ်။
+
+* Testability: Service တစ်ခုစီမှာ dependencies ကို အစားထိုးစမ်းသပ်နိုင်ရမယ်။
+
+## 2. Financial business logic guidelines
+
+ဒီအချက်တွေကို code review မှာ မဖြစ်မနေစစ်မယ်။
+
+| Rule               | Required behavior                                                    |
+| ------------------ | -------------------------------------------------------------------- |
+| Atomicity          | Financial records, ledger, balance and outbox are committed together |
+| Double entry       | Journal debit = credit                                               |
+| Idempotency        | Same request replay must not move money twice                        |
+| Concurrency        | Locking/consistency strategy prevents overspending                   |
+| Currency integrity | Amounts and ledger accounts use the correct currency                 |
+| Immutability       | Posted entries are not directly edited or deleted                    |
+| Reversals          | Corrections use controlled compensating entries                      |
+| Authorization      | Ownership and permission checked on every protected request          |
+| External payments  | Provider outcomes are verified, not inferred from redirects          |
+| Reconciliation     | Mismatches are detected and reviewed, not silently overwritten       |
+
+### Financial logic နဲ့ UI logic ကို မရောထွေးရ
+
+ဥပမာ Transfer confirmation dialog မှာ “Available balance လုံလောက်တယ်” လို့ ပြထားပေမယ့် request submit လုပ်ချိန်မှာ တခြား transaction တစ်ခုက balance ကို သုံးသွားနိုင်တယ်။
+
+ဒါကြောင့် Frontend validation က user experience အတွက်ဖြစ်ပြီး Backend က transaction အတွင်း balance ကို ပြန်စစ်ရမယ်။
+
+## 3. Frontend code design guidelines
+
+### Component responsibility
+
+| Layer               | တာဝန်                                                    |
+| ------------------- | -------------------------------------------------------- |
+| Page component      | Page composition and route-level state                   |
+| Feature component   | Transfer form, wallet card, review panel စတဲ့ feature UI |
+| Shared UI component | Reusable primitive and visual behavior                   |
+| API service         | HTTP requests and response parsing                       |
+| Query/state layer   | Server data fetching, caching, invalidation              |
+| Pinia store         | Cross-page/shared client state                           |
+| Composable          | Reusable UI behavior and interaction logic               |
+| Formatter/utility   | Currency/date/number presentation                        |
+
+### Mandatory rules
+
+* Vue components တွေကို အသေးစိတ် တာဝန်ခွဲမယ်။ Giant component မဖြစ်စေရ။
+
+* API request တွေကို page/component တစ်ခုချင်းစီမှာ ထပ်ခါထပ်ခါ မရေးရ။
+
+* API types တွေကို OpenAPI မှ generate လုပ်နိုင်ရင် manual duplicate definitions ကို လျှော့မယ်။
+
+* Pinia ထဲမှာ server data အားလုံးကို မလိုအပ်ဘဲ ထပ်သိမ်းထားတာမျိုး မလုပ်ရ။
+
+* API errors ကို component တစ်ခုချင်းစီမှာ မတူညီစွာ parse မလုပ်ဘဲ shared error handling သုံးမယ်။
+
+* Route guards ကို access control အဖြစ် မယူဆရ။
+
+* Money calculations အတွက် floating-point arithmetic မသုံးရ။
+
+* Loading, empty, error, disabled, pending နဲ့ success states မပါဘဲ production page တစ်ခုကို complete လို့ မသတ်မှတ်ရ။
+
+## 4. UI design guidelines
+
+### Design system governance
+
+* Shared design tokens ကိုသာ သုံးမယ်။
+
+* Color, spacing, typography နဲ့ border radius တွေကို arbitrary values အဖြစ် မဖြန့်ကျက်စေရ။
+
+* Shared component တစ်ခုကို ပြင်တဲ့အခါ အသုံးပြုနေတဲ့ feature တွေကို regression test လုပ်မယ်။
+
+* Component တစ်ခုချင်းစီအတွက် props, events, states, accessibility requirements နဲ့ usage examples ကို documentation ထဲမှာ ထည့်မယ်။
+
+* Visual consistency အတွက် page တစ်ခုချင်းစီက ကိုယ်ပိုင် button/modal/table pattern မဖန်တီးရ။
+
+* Financial confirmation screens မှာ amount, currency, destination နဲ့ fees ကိုရှင်းလင်းစွာ ပြရမယ်။
+
+* Error message တွေက ဘာဖြစ်တယ်ဆိုတာတင်မက ဘယ်လိုဆက်လုပ်ရမယ်ဆိုတာပါ ဖော်ပြရမယ်။
+
+### UI component Definition of Done
+
+Component တစ်ခုကို complete လို့သတ်မှတ်ဖို့ —
+
+* Design tokens ကို အသုံးပြုထားခြင်း
+
+* TypeScript props/events typed ဖြစ်ခြင်း
+
+* Keyboard accessibility ရှိခြင်း
+
+* Loading/disabled/error states သတ်မှတ်ထားခြင်း
+
+* Responsive behavior စစ်ဆေးထားခြင်း
+
+* Unit/component tests ပါဝင်ခြင်း
+
+* Usage documentation ပါဝင်ခြင်း
+
+# Part G — Documentation, traceability & quality evidence
+
+ISO-aligned engineering လုပ်ချင်ရင် code တင်မကဘဲ requirement ကနေ release အထိ traceability ရှိဖို့လိုတယ်။
+
+အကြံပြုထားတဲ့ documentation structure —
+
+```
+docs/
+├── requirements/
+├── architecture/
+│   ├── adr/
+│   ├── diagrams/
+│   └── api/
+├── business/
+│   ├── accounting-rules.md
+│   ├── state-machines.md
+│   └── permissions-matrix.md
+├── backend/
+│   ├── coding-guidelines.md
+│   ├── testing-strategy.md
+│   └── database-guidelines.md
+├── frontend/
+│   ├── architecture.md
+│   ├── component-guidelines.md
+│   ├── design-system.md
+│   └── accessibility-checklist.md
+├── security/
+├── testing/
+├── operations/
+├── compliance/
+│   ├── standards-mapping.md
+│   ├── traceability-matrix.md
+│   └── review-evidence/
+└── runbooks/
+```
+
+### Requirement traceability example
+
+| Requirement ID | Implementation                    | Verification                      |
+| -------------- | --------------------------------- | --------------------------------- |
+| `FIN-001`      | `LedgerPostingService`            | Balanced/unbalanced journal tests |
+| `FIN-002`      | Idempotency service               | Duplicate request tests           |
+| `SEC-001`      | Policies and authorization        | Access-control tests              |
+| `UI-001`       | Shared design system              | Component and visual review       |
+| `A11Y-001`     | Accessible form/dialog components | Keyboard and accessibility tests  |
+| `OPS-001`      | Partition manager                 | Partition automation test         |
+
+ဒီ matrix ကို actual requirements နဲ့ code paths အပေါ် အခြေခံပြီး တိကျအောင် update လုပ်ရမယ်။ ဥပမာ `FIN-001` က ဘယ် test file မှာ verify လုပ်ထားတယ်ဆိုတာပါ link ချိတ်ထားနိုင်ရမယ်။
+
+# Part H — AI coding agent implementation protocol
+
+Copilot, Claude Code သို့မဟုတ် local coding agent တစ်ခုကို သုံးမယ်ဆိုရင် အောက်ပါ workflow ကို Phase တိုင်းမှာ မဖြစ်မနေလိုက်နာခိုင်းပါ။
+
+#### 1
+
+Inspect
+
+Existing files, conventions, dependencies, current test status
+
+#### 2
+
+Specify
+
+Requirements, acceptance criteria, business invariants, API contract
+
+#### 3
+
+Design
+
+Minimal design, affected modules, schema and failure cases
+
+#### 4
+
+Implement
+
+Smallest coherent change; avoid unrelated refactoring
+
+#### 5
+
+Verify
+
+Run relevant tests, lint, typecheck, security and accessibility checks
+
+#### 6
+
+Review
+
+Review financial correctness, authorization, concurrency and UX states
+
+#### 7
+
+Document
+
+Update API, component, architecture and traceability documents
+
+#### 8
+
+Report
+
+Files changed, commands run, results, known gaps and next step
+
+### Ready-to-copy master instruction for the coding agent
+
+Digital Wallet Platform — Engineering Standards & Implementation Protocol
+
+# Digital Wallet Platform — Engineering Standards & Implementation Protocol
+
+You are implementing a production-oriented Digital Wallet & Financial Ledger Platform using Laravel, PHP, PostgreSQL, Redis, Vue 3, TypeScript, Pinia, Vue Router, Vite, and Tailwind CSS.
+
+## 1. Engineering principles
+
+Follow a documented, requirements-driven software lifecycle aligned with the applicable principles of ISO/IEC/IEEE 12207, ISO/IEC/IEEE 29148, ISO/IEC 25010, ISO/IEC 27001, ISO 9241-210, and ISO/IEC 40500/WCAG 2.2.
+
+Do not claim ISO certification or full compliance unless independently assessed and supported by evidence. Maintain traceability from requirements to implementation, tests, and release evidence.
+
+## 2. Mandatory workflow
+
+For every task:
+
+1. Inspect the existing repository, architecture, conventions, dependencies, and tests before editing.
+
+2. Identify the relevant requirement IDs, business rules, acceptance criteria, and affected modules.
+
+3. Explain the smallest viable implementation plan before making changes.
+
+4. Implement only the requested scope. Do not perform unrelated refactoring.
+
+5. Add or update automated tests for the behavior and relevant failure cases.
+
+6. Run the applicable tests, linting, static analysis, TypeScript typecheck, and build commands.
+
+7. Review security, authorization, financial correctness, concurrency, accessibility, responsive behavior, and error states.
+
+8. Update the relevant documentation and requirements traceability.
+
+9. Report changed files, commands executed, actual results, unresolved issues, and assumptions.
+
+Never claim that a test passed unless it was actually executed and passed. Never invent test results, files, API behavior, or compliance evidence.
+
+## 3. Backend rules
+
+* Use clear module boundaries and dependency injection.
+
+* Separate HTTP concerns, validation, DTOs, application services, domain rules, and persistence.
+
+* Keep financial invariants inside trusted backend/domain boundaries.
+
+* Use explicit database transaction boundaries for money movement.
+
+* Implement idempotency, concurrency control, and authorization.
+
+* Use integer minor units for money and enforce currency consistency.
+
+* Enforce double-entry accounting and immutable posted ledger records.
+
+* Use reversal/correction entries rather than editing posted financial records.
+
+* Treat external provider callbacks as untrusted until verified.
+
+* Handle timeouts and unknown outcomes explicitly.
+
+* Do not publish notifications or external events before the financial transaction commits.
+
+* Use a transactional outbox where reliable event delivery is required.
+
+* Use database constraints and least-privilege access in addition to application validation.
+
+* Do not partition ledger tables without documented benchmark evidence and a reviewed integrity design.
+
+## 4. Frontend rules
+
+* Use Vue 3 Composition API and TypeScript strict mode.
+
+* Keep page composition, feature logic, reusable UI, API access, and shared state separated.
+
+* Use shared UI primitives and documented design tokens.
+
+* Do not duplicate API contracts manually when generated types are available.
+
+* Do not treat frontend validation or route guards as security controls.
+
+* Do not use floating-point arithmetic for financial calculations.
+
+* Handle loading, empty, error, pending, timeout, success, and retry states.
+
+* Ensure forms, tables, dialogs, navigation, focus management, and status messages are accessible.
+
+* Test responsive layouts and supported themes.
+
+* Do not introduce new UI primitives without reviewing the existing component library first.
+
+## 5. Business logic and financial safety
+
+Before implementing a money-moving use case, specify:
+
+* Preconditions and authorization
+
+* State transitions
+
+* Ledger postings
+
+* Transaction boundaries
+
+* Idempotency scope
+
+* Locking and concurrency strategy
+
+* External side effects
+
+* Failure, retry, timeout, and reconciliation behavior
+
+* Audit requirements
+
+* Unit, feature, concurrency, and end-to-end tests
+
+Never silently fix reconciliation mismatches or mark uncertain external payment outcomes as failed without verification.
+
+## 6. Definition of Done
+
+A task is complete only when:
+
+* Acceptance criteria are met.
+
+* Relevant automated tests pass.
+
+* Typecheck, lint, and build pass where applicable.
+
+* Security and authorization have been reviewed.
+
+* Financial invariants are tested for financial features.
+
+* UI states and accessibility have been reviewed for frontend features.
+
+* Documentation and traceability are updated.
+
+* Remaining risks and limitations are reported.
+
+If a requirement is ambiguous or a financial rule is missing, identify the ambiguity and request clarification instead of inventing a business rule.
+
+# Final implementation order
+
+ဒီ project ကို တကယ်တည်ဆောက်တဲ့အခါ အောက်ပါ order ကို လိုက်နာဖို့ အကြံပြုတယ်။
+
+1. Phase 00–01: Requirements, business rules, architecture, API contract
+
+2. Phase 02–03: Backend/Frontend foundations နဲ့ UI design system
+
+3. Phase 04: Authentication/RBAC — Customer and Admin portals
+
+4. Phase 05: Database and Ledger Core
+
+5. Phase 06: Wallet dashboard and balance UI
+
+6. Phase 07: Internal transfers — Backend + Frontend + tests
+
+7. Phase 08: Deposits — Backend + Frontend + provider verification
+
+8. Phase 09: Withdrawals — Backend + Frontend + holds/recovery
+
+9. Phase 10: History, statements and Admin portal
+
+10. Phase 11–12: Outbox, partitioning, reconciliation and recovery
+
+11. Phase 13: Full security, accessibility, performance and regression testing
+
+12. Phase 14: Staging, production deployment and operational readiness
+
+အဓိကဆုံးက Feature တစ်ခုကို Backend-only ပြီးမှ Frontend-only လုပ်တာမဟုတ်ဘဲ vertical slice နဲ့ တည်ဆောက်ဖို့ ဖြစ်တယ်။ ဥပမာ Transfer feature ဆိုရင် database, business service, API contract, UI, error states, tests နဲ့ audit requirements အားလုံးကို feature တစ်ခုတည်းအဖြစ် ပြီးစီးအောင်လုပ်ပြီးမှ နောက် feature ကို ဆက်သွားမယ်။
+
+ဒီနည်းလမ်းက financial correctness, code maintainability, consistent UI/UX နဲ့ standards-aligned verification တို့ကို project အစကနေ အဆုံးအထိ ထိန်းသိမ်းနိုင်စေမယ်။
