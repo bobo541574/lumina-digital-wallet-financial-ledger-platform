@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\File;
 
 /*
  * Guardrails for the identifier conventions documented in
- * docs/architecture.md ("Column & reference conventions").
+ * docs/architecture/overview.md ("Column & reference conventions").
  *
  * Domain tables use real PostgreSQL `uuid` columns for primary keys and
  * foreign references. A UUID must never be stored in a `string`/`varchar`

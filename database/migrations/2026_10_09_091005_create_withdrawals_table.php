@@ -70,6 +70,10 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('withdrawals');
+        Schema::disableForeignKeyConstraints();
+        Schema::disableForeignKeyConstraints();
+        \DB::statement('DROP TABLE IF EXISTS withdrawals CASCADE');
+        Schema::enableForeignKeyConstraints();
+        Schema::enableForeignKeyConstraints();
     }
 };
