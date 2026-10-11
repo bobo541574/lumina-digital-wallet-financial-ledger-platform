@@ -2,8 +2,135 @@
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
+@source '../js/**/*.{vue,ts,tsx}';
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+/*
+ * Design tokens (Phase 03 source of truth).
+ *
+ * Components must reference these tokens (via Tailwind utilities such as
+ * `bg-background`, `text-muted-foreground`, `rounded-lg`) rather than raw
+ * colour/space/type values, so the whole product re-themes from one place.
+ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+    --radius: 0.625rem;
+
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.17 0.02 264);
+
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.17 0.02 264);
+
+    --muted: oklch(0.968 0.006 264);
+    --muted-foreground: oklch(0.52 0.02 264);
+
+    --primary: oklch(0.42 0.13 264);
+    --primary-foreground: oklch(0.985 0 0);
+
+    --secondary: oklch(0.965 0.008 264);
+    --secondary-foreground: oklch(0.24 0.03 264);
+
+    --accent: oklch(0.965 0.008 264);
+    --accent-foreground: oklch(0.24 0.03 264);
+
+    --destructive: oklch(0.55 0.2 25);
+    --destructive-foreground: oklch(0.985 0 0);
+
+    --success: oklch(0.48 0.13 155);
+    --success-foreground: oklch(0.985 0 0);
+
+    --warning: oklch(0.72 0.15 75);
+    --warning-foreground: oklch(0.24 0.03 264);
+
+    --border: oklch(0.915 0.006 264);
+    --input: oklch(0.915 0.006 264);
+    --ring: oklch(0.42 0.13 264);
+}
+
+.dark {
+    --background: oklch(0.16 0.015 264);
+    --foreground: oklch(0.97 0.005 264);
+
+    --card: oklch(0.2 0.017 264);
+    --card-foreground: oklch(0.97 0.005 264);
+
+    --muted: oklch(0.24 0.017 264);
+    --muted-foreground: oklch(0.68 0.015 264);
+
+    --primary: oklch(0.72 0.11 264);
+    --primary-foreground: oklch(0.16 0.015 264);
+
+    --secondary: oklch(0.26 0.017 264);
+    --secondary-foreground: oklch(0.97 0.005 264);
+
+    --accent: oklch(0.26 0.017 264);
+    --accent-foreground: oklch(0.97 0.005 264);
+
+    --destructive: oklch(0.62 0.19 25);
+    --destructive-foreground: oklch(0.98 0 0);
+
+    --success: oklch(0.66 0.13 155);
+    --success-foreground: oklch(0.16 0.015 264);
+
+    --warning: oklch(0.78 0.14 75);
+    --warning-foreground: oklch(0.16 0.015 264);
+
+    --border: oklch(0.3 0.015 264);
+    --input: oklch(0.3 0.015 264);
+    --ring: oklch(0.72 0.11 264);
+}
+
+@theme inline {
+    --font-sans:
+        'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-mono: ui-monospace, 'SFMono-Regular', 'SF Mono', Menlo, monospace;
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+    * {
+        border-color: var(--color-border);
+    }
+
+    body {
+        background-color: var(--color-background);
+        color: var(--color-foreground);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--color-ring);
+        outline-offset: 2px;
+    }
 }
