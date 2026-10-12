@@ -23,3 +23,14 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Cache policy for the Vite build output. Hashed assets under /build/ are
+# immutable; the HTML shell must always be revalidated so new asset hashes are
+# picked up after a deploy.
+<IfModule mod_headers.c>
+    SetEnvIf Request_URI "^/build/" BUILD_ASSET
+    Header set Cache-Control "public, max-age=31536000, immutable" env=BUILD_ASSET
+    <FilesMatch "\.html$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+</IfModule>

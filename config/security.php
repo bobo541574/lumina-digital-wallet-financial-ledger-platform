@@ -41,6 +41,31 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Response security headers
+    |--------------------------------------------------------------------------
+    |
+    | Baseline headers are always applied by the SecurityHeaders middleware.
+    | HSTS requires TLS; CSP is nonce-based and off by default because enabling
+    | it before every asset/inline allowance is verified can break the SPA.
+    |
+    */
+
+    'headers' => [
+        'hsts' => (bool) env('SECURITY_HSTS', false),
+        'hsts_max_age' => (int) env('SECURITY_HSTS_MAX_AGE', 31536000),
+        'csp_enabled' => (bool) env('SECURITY_CSP_ENABLED', false),
+        'csp_report_only' => (bool) env('SECURITY_CSP_REPORT_ONLY', true),
+
+        // Extra origins allowed by `connect-src` (e.g. an absolute API origin or
+        // a dedicated WebSocket host when it is not the app origin).
+        'csp_connect_extra' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('SECURITY_CSP_CONNECT_EXTRA', '')),
+        ))),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Redaction
     |--------------------------------------------------------------------------
     |

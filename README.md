@@ -105,6 +105,6 @@ feature polish, tests/E2E and deploy config (Phases 06–14).
 
 - [x] Phase 02–03 — Frontend foundation (Vue 3 + TS + Vite + Pinia + router + tokens) + design-system primitives
 - [x] Phase 04 — Portal authentication/RBAC UI (login, register, MFA, route guards)
-- [ ] Phase 06–10 — Customer & Admin portal screens (core screens implemented; UX polish ongoing)
-- [ ] Phase 13 — Frontend tests, accessibility, E2E
-- [ ] Phase 14 — Frontend production build & deploy config (CI gate added; deploy config pending)
+- [x] Phase 06–10 — Customer & Admin portal screens (UX polish complete: loading/retry states, mobile nav, dialog & tab accessibility)
+- [x] Phase 13 — Frontend tests, accessibility, E2E
+- [x] Phase 14 — Frontend production build & deploy config (CI gate, security headers, caching, smoke tests)

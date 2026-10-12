@@ -102,4 +102,23 @@ describe('api client', () => {
         expect(error).toBeInstanceOf(Error);
         expect(error.name).toBe('ApiError');
     });
+
+    it('uses VITE_API_BASE_URL when configured', async () => {
+        vi.resetModules();
+        vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com/v1/');
+
+        const fetchMock = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
+        fetchMock.mockResolvedValue(jsonResponse({ data: [] }));
+
+        const mod = await import('@/services/api/client');
+        await mod.request('/wallets');
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            'https://api.example.com/v1/wallets',
+            expect.objectContaining({ method: 'GET' }),
+        );
+
+        vi.unstubAllEnvs();
+        vi.resetModules();
+    });
 });

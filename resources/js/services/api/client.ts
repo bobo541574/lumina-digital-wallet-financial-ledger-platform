@@ -26,7 +26,20 @@ export class ApiError extends Error {
     }
 }
 
-const API_BASE = '/api/v1';
+/**
+ * Resolve the API base URL. Defaults to the same-origin `/api/v1`, which is what
+ * a single-host deployment (SPA served by the same Laravel app) wants. Set
+ * `VITE_API_BASE_URL` for split-host setups (e.g. a CDN-hosted SPA calling a
+ * separate API origin).
+ */
+function resolveApiBase(): string {
+    const configured = import.meta.env.VITE_API_BASE_URL?.trim();
+
+    return (configured && configured.length > 0 ? configured : '/api/v1').replace(/\/+$/, '');
+}
+
+const API_BASE = resolveApiBase();
+const API_BASE_IS_ABSOLUTE = /^https?:\/\//i.test(API_BASE);
 
 let authToken: string | null = null;
 
@@ -51,7 +64,8 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
         }
     }
 
-    return url.pathname + url.search;
+    // Cross-origin API: keep the absolute URL so fetches leave the SPA origin.
+    return API_BASE_IS_ABSOLUTE ? url.toString() : url.pathname + url.search;
 }
 
 /**

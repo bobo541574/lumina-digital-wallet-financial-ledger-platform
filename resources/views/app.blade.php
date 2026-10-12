@@ -8,8 +8,9 @@
         <title>Lumina Digital Wallet</title>
 
         {{-- Apply the stored theme before first paint so dark mode does not flash.
-             Mirrors resources/js/composables/useTheme.ts (storage key `lumina.theme`). --}}
-        <script>
+             Mirrors resources/js/composables/useTheme.ts (storage key `lumina.theme`).
+             The nonce is set by the SecurityHeaders middleware when CSP is enabled. --}}
+        <script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
             (function () {
                 try {
                     var stored = localStorage.getItem('lumina.theme');
