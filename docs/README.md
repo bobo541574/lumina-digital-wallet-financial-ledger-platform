@@ -19,6 +19,7 @@ Authoritative source: `BLUEPRINT.md` (requirement IDs, phases 00–14, quality g
 
 | Doc | Purpose |
 | --- | ------- |
+| `business/business-flow.md` | End-to-end business flows (wallets, deposits, transfers, withdrawals, ledger, reconciliation) |
 | `business/business-rules.md` | Operational rules a day-in-the-life must satisfy |
 | `business/accounting-rules.md` | Ledger, posting, anchoring, rounding |
 | `business/transaction-state-machines.md` | Transfer/deposit/withdrawal state tables |

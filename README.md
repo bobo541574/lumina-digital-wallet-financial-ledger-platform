@@ -1,16 +1,12 @@
 # Lumina — Digital Wallet & Financial Ledger Platform
 
-A production-oriented digital wallet built on a **double-entry ledger** with cached
-balances, multi-currency wallets, atomic internal transfers, deposits, withdrawals
-with holds, idempotency, reconciliation, and PostgreSQL partitioning.
+A production-oriented digital wallet built on a **double-entry ledger** with cached balances, multi-currency wallets, atomic internal transfers, deposits, withdrawals with holds, idempotency, reconciliation, and PostgreSQL partitioning.
 
-Stack: Laravel 13 · PHP 8.4 · PostgreSQL 16 · Redis · Pest · TypeScript-ready API.
-Realtime notification push is optional, via Laravel Reverb (WebSockets).
+Stack: Laravel 13 · PHP 8.4 · PostgreSQL 16 · Redis · Pest · Vue 3 + TypeScript + Vite + Pinia · Playwright + Vitest.
 
-The implementation plan lives in [`BLUEPRINT.md`](BLUEPRINT.md). Financial rules,
-state machines, accounting, and API error codes are documented under [`docs/`](docs).
+Realtime notifications via Laravel Reverb (WebSockets) with REST polling fallback.
 
-## Getting started
+## Quick start
 
 ```sh
 composer install
@@ -23,88 +19,93 @@ createdb lumina_test
 
 php artisan migrate --seed
 php artisan serve
-npm run dev        # frontend (frontend track)
+npm run dev
 ```
+
+### Demo credentials (seeded)
+
+After `php artisan migrate --seed`, the following accounts are available:
+
+| Role | Email | Password |
+|---|---|---|
+| Customer | `test@example.com` | `password` |
+| Admin | `admin@example.com` | `password` |
+| Finance Operator | `finance@example.com` | `password` |
+| Auditor | `auditor@example.com` | `password` |
+| Demo Users | `demo1@example.com`, `demo2@example.com`, `demo3@example.com` | `password` |
+
+Demo data is **ledger-backed** (balances derive from journal postings), includes transfers, withdrawals in varied states, provider/manual deposits, holds, audit events, notifications, and processed outbox messages.
 
 ### Realtime notifications (optional)
 
-The notification center works with REST polling alone. To add WebSocket push,
-set `BROADCAST_CONNECTION=reverb`, fill the `REVERB_*` app credentials (they flow
-into `VITE_REVERB_*` for the frontend) in `.env`, then run the Reverb server and a
-queue worker alongside `php artisan serve`:
+Notifications work with REST polling alone. To enable WebSocket push:
 
 ```sh
 php artisan reverb:start   # WebSocket server (default 0.0.0.0:8080)
-php artisan queue:work     # sends the queued broadcast jobs
+php artisan queue:work     # process broadcast jobs
 ```
 
-Without a Reverb key the frontend never opens a socket and polling continues.
+Set `BROADCAST_CONNECTION=reverb` and `REVERB_*` (which map to `VITE_REVERB_*`) in `.env`. Without Reverb configured, the SPA never opens a socket and falls back to polling.
 
 ## Quality gates
 
 ```sh
-php artisan test        # Pest test suite (PostgreSQL)
-./vendor/bin/pint --test # Code style (check)
-./vendor/bin/pint       # Auto-fix
-composer bench          # Performance benchmarks (excluded from default)
+php artisan test        # Pest test suite (173 tests, all passing)
+./vendor/bin/pint       # Auto-fix code style
+./vendor/bin/pint --test # Check code style
 npm run test:unit       # Vitest frontend unit/component tests
 npm run typecheck       # vue-tsc type check
 npm run lint            # ESLint
 npm run e2e             # Playwright browser journeys + axe a11y scans
-npm run types:api       # Regenerate frontend types from the OpenAPI contract
+npm run types:api       # Regenerate frontend types from OpenAPI contract
+composer bench          # Performance benchmarks (manual)
 ```
 
 ## Documentation
 
-Full index: `docs/README.md`. The implementation plan and phase numbering live in
-[`BLUEPRINT.md`](BLUEPRINT.md).
+- Implementation plan: [`BLUEPRINT.md`](BLUEPRINT.md)
+- Full docs index: [`docs/README.md`](docs/README.md)
+- Business flow: [`docs/business/business-flow.md`](docs/business/business-flow.md)
 
-| Document                                 | Contents                                    |
-| ---------------------------------------- | ------------------------------------------- |
-| `docs/requirements/*`                    | BR / FR / NFR / acceptance criteria          |
-| `docs/business/business-rules.md`        | Actors, currency/wallet/idempotency rules   |
-| `docs/business/transaction-state-machines.md` | Transfer/deposit/withdrawal/hold lifecycles |
-| `docs/business/accounting-rules.md`      | Chart of accounts, posting rules, reversal  |
-| `docs/business/permissions-matrix.md`    | Role × permission × endpoint matrix         |
-| `docs/architecture/api/error-codes.md`   | Error envelope and code catalog             |
-| `docs/architecture/api/openapi.yaml`     | OpenAPI 3.1 contract (CI-validated)         |
-| `docs/architecture/overview.md`          | Modules, layering, conventions              |
-| `docs/compliance/*`                      | Standards mapping, traceability, risk register |
-| `docs/operations/deployment.md`          | Deployment, ops, runbooks, checklist        |
+### Key docs
+
+| Document | Purpose |
+|---|---|
+| `docs/business/business-flow.md` | End-to-end business flows (wallets, deposits, transfers, withdrawals, ledger, reconciliation) |
+| `docs/business/accounting-rules.md` | Double-entry rules, chart of accounts, postings, reversals |
+| `docs/business/transaction-state-machines.md` | Transfer/deposit/withdrawal/hold state transitions |
+| `docs/business/permissions-matrix.md` | Role × permission matrix |
+| `docs/architecture/api/openapi.yaml` | OpenAPI 3.1 contract (44 paths, CI-validated) |
+| `docs/architecture/overview.md` | Modules, layering, invariants |
+| `docs/compliance/standards-mapping.md` | ISO alignment (12207, 29148, 25010, 27001, 9241-210, 40500/WCAG 2.2) |
+| `docs/operations/deployment.md` | Deployment, ops, runbooks |
+| `docs/testing/testing-strategy.md` | Test tiers, money-movement rules, concurrency, E2E |
 
 ## Security & reliability
 
-- RBAC with ownership enforcement; admin MFA configurable via `security.two_factor.admin_required`.
-- Rate limits, webhook signature verification, and sensitive data redaction.
-- Resilient transactions (concurrency retry), provider timeout recovery, scheduled outbox processing, and DB timeouts.
-- Idempotency on write endpoints.
+- **Double-entry ledger** as financial source of truth; cached balances reconciled against postings.
+- **RBAC** with ownership enforcement; admin MFA configurable via `security.two_factor.admin_required`.
+- **Atomicity**: ledger postings + wallet balance projections + state changes inside resilient transactions.
+- **Idempotency** on write endpoints (Idempotency-Key + request hash).
+- **Withdrawals**: full-amount reservation (amount+fee) via holds; timeout/provider errors move to reconciliation (never auto-release on unverified failure).
+- **Provider webhooks**: HMAC signature verification, inbox deduplication, amount/currency checks, quarantine on mismatch.
+- **Transactional outbox**: domain events committed with state changes; delivered at-least-once with retries/backoff; notifications created only after commit.
+- **Reconciliation**: wallet (Layer 1), provider/settlement (Layer 2/3); discrepancies recorded, never auto-corrected.
+- **Rate limiting**, sensitive data redaction, DB statement/idle transaction timeouts, and structured audit logging.
+
+## Architecture
+
+- **Modular monolith** (feature modules under `app/Modules/*`) with clear boundaries.
+- **PostgreSQL** for relational integrity; **Redis** for caching/queues.
+- **Laravel Reverb** for realtime; **Pinia + Vue Router** for SPA state/routing; **shadcn-vue/Tailwind** UI.
+- **Partitioning**: payment_events partitioned by month; hybrid approach for large tables.
 
 ## CI
 
-See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the standard gates (tests, Pint, dependency audit).
+See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for gates (Pest, Pint, frontend lint/typecheck/unit, dependency audit, OpenAPI validation).
 
-## Status
+## E2E
 
-Phases follow the [`BLUEPRINT.md`](BLUEPRINT.md) roadmap. Backend is complete through
-the equivalent of the blueprint's build/ops phases. The frontend track foundation and
-authentication UI (Phases 02–04) are implemented; remaining frontend work is portal
-feature polish, tests/E2E and deploy config (Phases 06–14).
+E2E suite boots a throwaway DB (`lumina_e2e`), runs migrations+seed, builds assets, serves via `php artisan serve`. Smoke tests can run against any environment via `E2E_BASE_URL`.
 
-- [x] Phase 00 — Requirements, business rules & compliance (backing `docs/requirements`, `docs/compliance`)
-- [x] Phase 01 — System architecture & API contract (incl. `docs/architecture/api/openapi.yaml`)
-- [x] Phase 02 — Backend foundation (auth, modules, CI, tests)
-- [x] Phase 05 — Database & Ledger Core
-- [x] Phase 07 — Internal wallet transfer (backend)
-- [x] Phase 08 — Deposits (backend)
-- [x] Phase 09 — Withdrawals (backend)
-- [x] Phase 10 — Transaction history, statements & Admin (backend)
-- [x] Phase 11 — Events, outbox & PostgreSQL partitioning
-- [x] Phase 12 — Reconciliation & recovery
-- [x] Phase 13 — Backend security/reliability (QA evidence pending in `docs/compliance/review-evidence/`)
-- [x] Phase 14 — Deployment & operations (docs)
-
-- [x] Phase 02–03 — Frontend foundation (Vue 3 + TS + Vite + Pinia + router + tokens) + design-system primitives
-- [x] Phase 04 — Portal authentication/RBAC UI (login, register, MFA, route guards)
-- [x] Phase 06–10 — Customer & Admin portal screens (UX polish complete: loading/retry states, mobile nav, dialog & tab accessibility)
-- [x] Phase 13 — Frontend tests, accessibility, E2E
-- [x] Phase 14 — Frontend production build & deploy config (CI gate, security headers, caching, smoke tests)
+All tests pass: 173/173 feature/unit tests with 646 assertions.
