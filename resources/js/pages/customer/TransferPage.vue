@@ -12,10 +12,14 @@ import Card from '@/components/ui/Card.vue';
 import Input from '@/components/ui/Input.vue';
 import Label from '@/components/ui/Label.vue';
 import MoneyText from '@/components/ui/MoneyText.vue';
+import RetryPanel from '@/components/ui/RetryPanel.vue';
 import Select from '@/components/ui/Select.vue';
+import Spinner from '@/components/ui/Spinner.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 
 const wallets = ref<Wallet[]>([]);
+const loading = ref(true);
+const loadError = ref<string | null>(null);
 const senderWalletId = ref('');
 const recipientWalletId = ref('');
 const amount = ref('');
@@ -33,12 +37,21 @@ function walletLabel(wallet: Wallet): string {
     return `${name} — ${available}`;
 }
 
+async function fetchWallets(): Promise<void> {
+    wallets.value = await walletsService.list();
+    senderWalletId.value = wallets.value[0]?.id ?? '';
+}
+
 async function load(): Promise<void> {
+    loading.value = true;
+    loadError.value = null;
+
     try {
-        wallets.value = await walletsService.list();
-        senderWalletId.value = wallets.value[0]?.id ?? '';
+        await fetchWallets();
     } catch (error) {
-        errorMessage.value = apiErrorMessage(error);
+        loadError.value = apiErrorMessage(error);
+    } finally {
+        loading.value = false;
     }
 }
 
@@ -74,7 +87,14 @@ async function submit(): Promise<void> {
 
         amount.value = '';
         description.value = '';
-        await load();
+
+        // Refresh balances after a successful transfer; failure here is
+        // best-effort and must not turn a success into an error.
+        try {
+            await fetchWallets();
+        } catch {
+            // Keep the success state; the next page visit refreshes.
+        }
     } catch (error) {
         errorMessage.value = apiErrorMessage(error);
     } finally {
@@ -110,7 +130,11 @@ onMounted(load);
             <MoneyText :amount="completed.amount" :currency="completed.currency" /> sent.
         </Alert>
 
-        <Card title="New transfer" class="max-w-xl">
+        <Spinner v-if="loading" />
+
+        <RetryPanel v-else-if="loadError" :message="loadError" :retrying="loading" @retry="load" />
+
+        <Card v-else title="New transfer" class="max-w-xl">
             <form class="space-y-4" @submit.prevent="submit">
                 <div class="space-y-1.5">
                     <Label for="sender" required>From wallet</Label>

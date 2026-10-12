@@ -8,7 +8,9 @@ import type { Wallet, WalletBalance, WalletTransaction } from '@/types/api';
 import Alert from '@/components/ui/Alert.vue';
 import Button from '@/components/ui/Button.vue';
 import Card from '@/components/ui/Card.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
 import MoneyText from '@/components/ui/MoneyText.vue';
+import RetryPanel from '@/components/ui/RetryPanel.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
@@ -20,12 +22,13 @@ const wallet = ref<Wallet | null>(null);
 const balance = ref<WalletBalance | null>(null);
 const transactions = ref<WalletTransaction[]>([]);
 const loading = ref(true);
+const loadError = ref<string | null>(null);
 const errorMessage = ref<string | null>(null);
 const exporting = ref(false);
 
 async function load(): Promise<void> {
     loading.value = true;
-    errorMessage.value = null;
+    loadError.value = null;
 
     try {
         const [wallets, walletBalance, history] = await Promise.all([
@@ -38,7 +41,7 @@ async function load(): Promise<void> {
         balance.value = walletBalance;
         transactions.value = history;
     } catch (error) {
-        errorMessage.value = apiErrorMessage(error);
+        loadError.value = apiErrorMessage(error);
     } finally {
         loading.value = false;
     }
@@ -83,89 +86,94 @@ onMounted(load);
 
         <Alert v-if="errorMessage" variant="error" class="mb-6">{{ errorMessage }}</Alert>
 
-        <Spinner v-if="loading" />
+        <RetryPanel v-if="loadError" :message="loadError" :retrying="loading" @retry="load" />
 
         <template v-else>
-            <div class="grid gap-4 sm:grid-cols-3">
-                <Card title="Available">
-                    <p class="text-2xl font-semibold">
-                        <MoneyText
-                            :amount="balance?.available_balance ?? 0"
-                            :currency="balance?.currency ?? 'USD'"
-                        />
-                    </p>
-                </Card>
-                <Card title="Posted">
-                    <p class="text-2xl font-semibold">
-                        <MoneyText
-                            :amount="balance?.posted_balance ?? 0"
-                            :currency="balance?.currency ?? 'USD'"
-                        />
-                    </p>
-                </Card>
-                <Card title="Reserved">
-                    <p class="text-2xl font-semibold">
-                        <MoneyText
-                            :amount="balance?.reserved_balance ?? 0"
-                            :currency="balance?.currency ?? 'USD'"
-                        />
-                    </p>
-                </Card>
-            </div>
+            <Spinner v-if="loading" />
 
-            <div class="mt-6 flex items-center gap-3">
-                <StatusBadge v-if="wallet" :status="wallet.status" />
-                <span class="text-sm text-muted-foreground">Wallet ID: {{ walletId }}</span>
-            </div>
+            <template v-else>
+                <div class="grid gap-4 sm:grid-cols-3">
+                    <Card title="Available">
+                        <p class="text-2xl font-semibold">
+                            <MoneyText
+                                :amount="balance?.available_balance ?? 0"
+                                :currency="balance?.currency ?? 'USD'"
+                            />
+                        </p>
+                    </Card>
+                    <Card title="Posted">
+                        <p class="text-2xl font-semibold">
+                            <MoneyText
+                                :amount="balance?.posted_balance ?? 0"
+                                :currency="balance?.currency ?? 'USD'"
+                            />
+                        </p>
+                    </Card>
+                    <Card title="Reserved">
+                        <p class="text-2xl font-semibold">
+                            <MoneyText
+                                :amount="balance?.reserved_balance ?? 0"
+                                :currency="balance?.currency ?? 'USD'"
+                            />
+                        </p>
+                    </Card>
+                </div>
 
-            <h2 class="mb-3 mt-8 text-lg font-semibold">Recent activity</h2>
+                <div class="mt-6 flex items-center gap-3">
+                    <StatusBadge v-if="wallet" :status="wallet.status" />
+                    <span class="text-sm text-muted-foreground">Wallet ID: {{ walletId }}</span>
+                </div>
 
-            <div class="overflow-hidden rounded-xl border border-border">
-                <table class="w-full text-sm">
-                    <thead class="bg-muted text-left text-muted-foreground">
-                        <tr>
-                            <th class="px-4 py-3 font-medium">Date</th>
-                            <th class="px-4 py-3 font-medium">Description</th>
-                            <th class="px-4 py-3 font-medium">Type</th>
-                            <th class="px-4 py-3 text-right font-medium">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-if="transactions.length === 0">
-                            <td colspan="4" class="px-4 py-6 text-center text-muted-foreground">
-                                No activity yet.
-                            </td>
-                        </tr>
-                        <tr
-                            v-for="entry in transactions"
-                            :key="entry.id"
-                            class="border-t border-border"
-                        >
-                            <td class="px-4 py-3 text-muted-foreground">
-                                {{ entry.occurred_at?.slice(0, 10) ?? '—' }}
-                            </td>
-                            <td class="px-4 py-3">
-                                {{ entry.description ?? entry.source_type ?? '—' }}
-                            </td>
-                            <td class="px-4 py-3 text-muted-foreground">
-                                {{ entry.entry_type ?? '—' }}
-                            </td>
-                            <td class="px-4 py-3 text-right font-medium">
-                                <MoneyText
-                                    :amount="entry.signed_amount"
-                                    :currency="entry.currency"
-                                    coloured
-                                    signed
-                                />
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                <h2 class="mb-3 mt-8 text-lg font-semibold">Recent activity</h2>
 
-            <p class="mt-3 text-xs text-muted-foreground">
-                Statement export covers the last 30 days by default.
-            </p>
+                <EmptyState
+                    v-if="transactions.length === 0"
+                    title="No activity yet"
+                    description="Transactions will appear here once you start using this wallet."
+                />
+
+                <div v-else class="overflow-x-auto rounded-xl border border-border">
+                    <table class="w-full text-sm">
+                        <thead class="bg-muted text-left text-muted-foreground">
+                            <tr>
+                                <th class="px-4 py-3 font-medium">Date</th>
+                                <th class="px-4 py-3 font-medium">Description</th>
+                                <th class="px-4 py-3 font-medium">Type</th>
+                                <th class="px-4 py-3 text-right font-medium">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="entry in transactions"
+                                :key="entry.id"
+                                class="border-t border-border"
+                            >
+                                <td class="px-4 py-3 text-muted-foreground">
+                                    {{ entry.occurred_at?.slice(0, 10) ?? '—' }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    {{ entry.description ?? entry.source_type ?? '—' }}
+                                </td>
+                                <td class="px-4 py-3 text-muted-foreground">
+                                    {{ entry.entry_type ?? '—' }}
+                                </td>
+                                <td class="px-4 py-3 text-right font-medium">
+                                    <MoneyText
+                                        :amount="entry.signed_amount"
+                                        :currency="entry.currency"
+                                        coloured
+                                        signed
+                                    />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="mt-3 text-xs text-muted-foreground">
+                    Statement export covers the last 30 days by default.
+                </p>
+            </template>
         </template>
     </div>
 </template>

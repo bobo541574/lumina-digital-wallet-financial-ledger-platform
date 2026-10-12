@@ -11,11 +11,15 @@ import Button from '@/components/ui/Button.vue';
 import Card from '@/components/ui/Card.vue';
 import Input from '@/components/ui/Input.vue';
 import Label from '@/components/ui/Label.vue';
+import RetryPanel from '@/components/ui/RetryPanel.vue';
 import Select from '@/components/ui/Select.vue';
+import Spinner from '@/components/ui/Spinner.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 
 const wallets = ref<Wallet[]>([]);
+const loading = ref(true);
+const loadError = ref<string | null>(null);
 const walletId = ref('');
 const amount = ref('');
 const channel = ref<'manual' | 'provider'>('manual');
@@ -26,12 +30,21 @@ const result = ref<Deposit | null>(null);
 const wallet = computed(() => wallets.value.find((w) => w.id === walletId.value) ?? null);
 const currency = computed(() => wallet.value?.currency ?? 'USD');
 
+async function fetchWallets(): Promise<void> {
+    wallets.value = await walletsService.list();
+    walletId.value = wallets.value[0]?.id ?? '';
+}
+
 async function load(): Promise<void> {
+    loading.value = true;
+    loadError.value = null;
+
     try {
-        wallets.value = await walletsService.list();
-        walletId.value = wallets.value[0]?.id ?? '';
+        await fetchWallets();
     } catch (error) {
-        errorMessage.value = apiErrorMessage(error);
+        loadError.value = apiErrorMessage(error);
+    } finally {
+        loading.value = false;
     }
 }
 
@@ -101,7 +114,11 @@ onMounted(load);
             </p>
         </Alert>
 
-        <Card title="Deposit details" class="max-w-xl">
+        <Spinner v-if="loading" />
+
+        <RetryPanel v-else-if="loadError" :message="loadError" :retrying="loading" @retry="load" />
+
+        <Card v-else title="Deposit details" class="max-w-xl">
             <form class="space-y-4" @submit.prevent="submit">
                 <div class="space-y-1.5">
                     <Label for="wallet" required>To wallet</Label>

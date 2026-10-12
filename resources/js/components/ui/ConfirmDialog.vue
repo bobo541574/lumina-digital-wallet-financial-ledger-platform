@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref, useId, watch } from 'vue';
+import { nextTick, onUnmounted, ref, useId, watch } from 'vue';
 import Button from '@/components/ui/Button.vue';
 
 const props = withDefaults(
@@ -32,6 +32,7 @@ const emit = defineEmits<{
 }>();
 
 const reasonId = useId();
+const descriptionId = useId();
 const reason = ref('');
 const panel = ref<HTMLElement | null>(null);
 let previouslyFocused: HTMLElement | null = null;
@@ -48,6 +49,10 @@ function close(): void {
 function confirm(): void {
     emit('confirm', reason.value.trim());
 }
+
+onUnmounted(() => {
+    document.body.style.overflow = '';
+});
 
 function trapFocus(event: KeyboardEvent): void {
     const container = panel.value;
@@ -92,10 +97,12 @@ watch(
     () => props.open,
     async (open) => {
         if (!open) {
+            document.body.style.overflow = '';
             previouslyFocused?.focus();
             return;
         }
 
+        document.body.style.overflow = 'hidden';
         reason.value = '';
         previouslyFocused = document.activeElement as HTMLElement | null;
         await nextTick();
@@ -117,10 +124,15 @@ watch(
                 role="dialog"
                 aria-modal="true"
                 :aria-label="title"
+                :aria-describedby="description ? descriptionId : undefined"
                 class="relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl"
             >
                 <h2 class="text-lg font-semibold">{{ title }}</h2>
-                <p v-if="description" class="mt-2 text-sm text-muted-foreground">
+                <p
+                    v-if="description"
+                    :id="descriptionId"
+                    class="mt-2 text-sm text-muted-foreground"
+                >
                     {{ description }}
                 </p>
 

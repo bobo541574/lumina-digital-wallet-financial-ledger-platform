@@ -4,18 +4,18 @@ import { RouterLink } from 'vue-router';
 import { walletsService } from '@/services/wallets';
 import { apiErrorMessage } from '@/lib/errors';
 import type { Wallet } from '@/types/api';
-import Alert from '@/components/ui/Alert.vue';
 import Button from '@/components/ui/Button.vue';
 import Card from '@/components/ui/Card.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import MoneyText from '@/components/ui/MoneyText.vue';
+import RetryPanel from '@/components/ui/RetryPanel.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 
 const wallets = ref<Wallet[]>([]);
 const loading = ref(true);
-const errorMessage = ref<string | null>(null);
+const loadError = ref<string | null>(null);
 
 const totalsByCurrency = computed(() => {
     const totals = new Map<string, number>();
@@ -30,12 +30,12 @@ const totalsByCurrency = computed(() => {
 
 async function load(): Promise<void> {
     loading.value = true;
-    errorMessage.value = null;
+    loadError.value = null;
 
     try {
         wallets.value = await walletsService.list();
     } catch (error) {
-        errorMessage.value = apiErrorMessage(error);
+        loadError.value = apiErrorMessage(error);
     } finally {
         loading.value = false;
     }
@@ -48,11 +48,11 @@ onMounted(load);
     <div>
         <PageHeader title="Dashboard" description="Your balances at a glance." />
 
-        <Alert v-if="errorMessage" variant="error" class="mb-6">{{ errorMessage }}</Alert>
-
-        <Spinner v-if="loading" />
+        <RetryPanel v-if="loadError" :message="loadError" :retrying="loading" @retry="load" />
 
         <template v-else>
+            <Spinner v-if="loading" />
+
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Card
                     v-for="total in totalsByCurrency"

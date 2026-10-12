@@ -3,9 +3,9 @@ import { onMounted, ref, watch } from 'vue';
 import { walletsService } from '@/services/wallets';
 import { apiErrorMessage } from '@/lib/errors';
 import type { Wallet, WalletTransaction } from '@/types/api';
-import Alert from '@/components/ui/Alert.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import MoneyText from '@/components/ui/MoneyText.vue';
+import RetryPanel from '@/components/ui/RetryPanel.vue';
 import Spinner from '@/components/ui/Spinner.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 
@@ -14,6 +14,12 @@ const walletId = ref('');
 const transactions = ref<WalletTransaction[]>([]);
 const loading = ref(false);
 const errorMessage = ref<string | null>(null);
+
+async function retry(): Promise<void> {
+    errorMessage.value = null;
+    await loadWallets();
+    await loadTransactions();
+}
 
 async function loadWallets(): Promise<void> {
     try {
@@ -54,8 +60,6 @@ onMounted(async () => {
     <div>
         <PageHeader title="Activity" description="Every movement across your wallet." />
 
-        <Alert v-if="errorMessage" variant="error" class="mb-6">{{ errorMessage }}</Alert>
-
         <div class="mb-6 max-w-xs">
             <label for="wallet" class="mb-1.5 block text-sm font-medium">Wallet</label>
             <select
@@ -71,13 +75,20 @@ onMounted(async () => {
 
         <Spinner v-if="loading" />
 
+        <RetryPanel
+            v-else-if="errorMessage"
+            :message="errorMessage"
+            :retrying="loading"
+            @retry="retry"
+        />
+
         <EmptyState
             v-else-if="transactions.length === 0"
             title="No activity"
             description="This wallet has no movements yet."
         />
 
-        <div v-else class="overflow-hidden rounded-xl border border-border">
+        <div v-else class="overflow-x-auto rounded-xl border border-border">
             <table class="w-full text-sm">
                 <thead class="bg-muted text-left text-muted-foreground">
                     <tr>

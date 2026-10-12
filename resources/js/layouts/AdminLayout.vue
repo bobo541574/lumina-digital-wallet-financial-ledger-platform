@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { RouterLink, RouterView, useRouter } from 'vue-router';
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import Button from '@/components/ui/Button.vue';
 import ThemeToggle from '@/components/layout/ThemeToggle.vue';
 
 const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 
 const navItems = computed(() =>
     [
@@ -42,6 +43,7 @@ async function signOut(): Promise<void> {
                     v-for="item in navItems"
                     :key="item.name"
                     :to="{ name: item.name }"
+                    :aria-current="route.name === item.name ? 'page' : undefined"
                     class="rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     active-class="bg-accent text-accent-foreground"
                 >
